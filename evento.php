@@ -14,7 +14,6 @@ class Evento{
 	public $imagen;
 
 	function __construct($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen){
-		//Quitar espacios antes de asignar strings
 		$this->titulo = $titulo;
 		$this->tipo =	$tipo;
 		$this->fechaUnix = $fechaUnix;
@@ -25,7 +24,7 @@ class Evento{
 		$this->texto = $texto;
 		$this->precio =	$precio;
 		$this->urlCompraEntradas = $urlCompraEntradas;
-		$this->imagen = $imagen;
+		$this->$imagen = $imagen;
 	}
 
 

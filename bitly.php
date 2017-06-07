@@ -3,7 +3,7 @@ class Bitly{
 	//usuario: ferminako
 	//pass : Navarra1221/
 
-	function make_bitly_url($url,$login,$appkey,$format = 'xml',$version = '2.0.1')
+	static function make_bitly_url($url,$login,$appkey,$format = 'xml',$version = '2.0.1')
 	{
 		//create the URL
 		$bitly = 'http://api.bit.ly/shorten?version='.$version.'&longUrl='.urlencode($url).'&login='.$login.'&apiKey='.$appkey.'&format='.$format;
