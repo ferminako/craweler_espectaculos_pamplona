@@ -82,6 +82,8 @@
 			$precio = rtrim(trim(strip_tags(utf8_encode(pq($divEvento)->find('span.precios')))))." €";
 
 			$urlCompraEntradas = $this->get_string_between(pq($divEvento)->find('div.compraentrada')->find('a')->attr('onclick'),"compraEntradas('","')");
+			$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
+
 			return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 			// return new Evento($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 		}
@@ -175,6 +177,7 @@
 			}
 
 			$urlCompraEntradas =  pq($divEvento)->find('div.vc_btn3-container')->find('a.vc_general')->attr('href');
+			$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
 
 			$texto = "";
 			foreach(pq($divEvento)->find('div.vc_tta-panel-body')->find('div.wpb_text_column')->find('div.wpb_wrapper')->find('p') as $contenido) {
@@ -221,11 +224,12 @@
 
 		///////////////////////GAYARRE///////////////////////
 		function traerEventosGayarre(){
+
 			$urlsGayarre = array();
 			$eventosGayarre = array();
 			/*Preparo las urls para las fechas de 3 meses vista*/
 			$mesActual = date('n');
-			$anoActual = date('Y')
+			$anoActual = date('Y');
 			for ($i=0; $i < 3; $i++) {
 				$urlsGayarre = array();
 				$auxUrl = $this->urlGayarre."?mesAgenda=".$mesActual."&annoAgenda=".$anoActual;
@@ -238,89 +242,108 @@
  				$mesActual = $fecha["mes"];
  				$anoActual = $fecha["ano"];
 			}
-			return $eventosBaluarte;
+			return $eventosGayarre;
 		}
 
 		function obtenerLinksGayarre($html){
 			$urls = array();
 			$doc = phpQuery::newDocument($html);
-			$divEventos = pq('div.concept-gallery');
+			$divEventos = pq('#listaProgramacion');
 			//Recorro ese div buscando la url detalle de cada evento
-			foreach( $divEventos->find('div.isotope-item') as $divEvento ) {
-				$urlEvento = pq($divEvento)->find('h4')->find('a')->attr('href');
-				$urls[] = $urlEvento;;
+			foreach( $divEventos->find('tr') as $key=>$divEvento ) {
+
+				if( $key > 0 ){
+					$urlEvento = pq($divEvento)->find('td:nth-child(4)')->find('a')->attr('href');
+					$urls[] = "http://teatrogayarre.com/portal/". $urlEvento;
+				}
 			}
 			return $urls;
 		}
 
 		function parseHtmlGayarre($url){
-			// echo $url."<br>";
 			$urlWeb = bitly::acortarUrl($url);
 			$html = $this->traerHtml($url);
+
 			$doc = phpQuery::newDocument($html);
-			$divEvento = pq('#Descripcion_evento');
-			$divTitulo = pq('#Titulo');
+			$divPreEvento = pq('.cuerpoEvento');
+			$divEvento = pq('#op1');
+			$divInfoEvento = pq('.infoEvento');
 
-			$imagen = pq($divEvento)->find('div.vc_single_image-wrapper')->find('img')->attr('src');
-			$titulo = strip_tags(pq($divTitulo)->find('h1'));
-			$tipo = strip_tags(pq($divTitulo)->find('h5'));
-
-			$aux =  pq($divEvento)->find('p:first');
-			$auxFecha = $this->get_string_between($aux,'<p>','<br>');
-			$auxFecha = explode('</span>', $aux);
-			$auxFecha = explode(',', $auxFecha[1]);
-			$fechaTexto = trim(rtrim($auxFecha[0]));
-			$fechaUnix = $this->obtenerUnixTimeBaluarte($fechaTexto);
-			$hora = rtrim(trim($auxFecha = $this->get_string_between($aux,'<br><span class="text-uppercase"><strong>Horario:</strong></span>','<br>')));
-			$lugar ="Auditorio Barañain," . rtrim(trim($this->get_string_between($aux,'<strong>Sala:</strong></span>','</p>')));
-
-			$aux =  pq($divEvento)->find('ul.disc-list');
+			$imagen = "http://teatrogayarre.com/" . pq($divPreEvento)->find('img')->attr('src');
+			$titulo = strip_tags(pq($divEvento)->find('h2'));
+			$tipo = pq($divInfoEvento)->find('div#zonaFechas')->find('h3:first');
+			$tipo = $this->get_string_between($tipo, '</span>', '</h3>');
+			$aux = pq($divInfoEvento)->find('div.fechas')->find('div.fecha');
+			$aux = explode("-", $aux);
+			$fechaTexto = rtrim(trim(strtolower(str_replace('de', '', $aux[1]))));
+			$fechaTexto = str_replace('  ', ' ', $fechaTexto);
+			$fechaUnix = $this->obtenerUnixTimeGayarre($fechaTexto);
+			$hora = rtrim(trim(strip_tags(pq($divInfoEvento)->find('div.fechas')->find('div.hora'))));
+			$lugar ="Teatro Gayarre, Sala Principal";
+			$tablaPrecios = pq($divInfoEvento)->find('table.precio');
 			$precio = "";
-			foreach ($aux->find('li') as $key => $p) {
-				$precio .= $p->textContent."<br>";
+			foreach ($tablaPrecios->find('tr') as $key => $p) {
+				$aux_precio = str_replace('Sala', 'Sala ', $p->textContent);
+				$aux_precio = str_replace('Palco', 'Palco ', $aux_precio);
+				$aux_precio = str_replace('Anfiteatro', 'Anfiteatro ', $aux_precio);
+				$precio .= $aux_precio . "<br>";
 			}
-
-			$urlCompraEntradas =  pq($divEvento)->find('div.vc_btn3-container')->find('a.vc_general')->attr('href');
+			$urlCompraEntradas = pq($divInfoEvento)->find('p.compra')->find('a')->attr('href');
+			$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
 
 			$texto = "";
-			foreach(pq($divEvento)->find('div.vc_tta-panel-body')->find('div.wpb_text_column')->find('div.wpb_wrapper')->find('p') as $contenido) {
-				$texto .= $contenido->textContent."<br>";
+			foreach ($divEvento->find('div:first')->find('p') as $key => $p) {
+			 	$texto .= $p->textContent."<br>";
 			}
+
 			return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 		}
 
 		function obtenerUnixTimeGayarre($fechaTexto){
-			$fechaSinDiaSemana = explode(",", $fechaTexto);
-			$auxFecha=explode(" ",$fechaSinDiaSemana[0]);
-			$dia = $auxFecha[0];
-			$mes = strtolower($auxFecha[1]);
+
+			$aux = explode(" ", $fechaTexto);
+			$dia = $aux[0];
+			$mes = $aux[2];
+
 			$mesNumero = 0;
-			switch ($mes) {
-				case 'enero':
-					$mesNumero = 1;break;
-				case 'febrero':
-					$mesNumero = 2;break;
-				case 'marzo':
-					$mesNumero = 3;break;
-				case 'abril':
-					$mesNumero = 4;break;
-				case 'mayo':
-					$mesNumero = 5;break;
-				case 'junio':
-					$mesNumero = 6;break;
-				case 'julio':
-					$mesNumero = 7;break;
-				case 'agosto':
-					$mesNumero = 8;break;
-				case 'septiembre':
-					$mesNumero = 9;break;
-				case 'octubre':
-					$mesNumero = 10;break;
-				case 'noviembre':
-					$mesNumero = 11;break;
-				case 'diciembre':
-					$mesNumero = 12;break;
+
+			if(strpos($mes, 'enero') !== false){
+				$mesNumero = 1;
 			}
+			if(strpos($mes, 'febrero') !== false){
+				$mesNumero = 2;
+			}
+			if(strpos($mes, 'marzo') !== false){
+				$mesNumero = 3;
+			}
+			if(strpos($mes, 'abril') !== false){
+				$mesNumero = 4;
+			}
+			if(strpos($mes, 'mayo') !== false){
+				$mesNumero = 5;
+			}
+			if(strpos($mes, 'junio') !== false){
+				$mesNumero = 6;
+			}
+			if(strpos($mes, 'julio') !== false){
+				$mesNumero = 7;
+			}
+			if(strpos($mes, 'agosto') !== false){
+				$mesNumero = 8;
+			}
+			if(strpos($mes, 'septiembre') !== false){
+				$mesNumero = 9;
+			}
+			if(strpos($mes, 'octubre') !== false){
+				$mesNumero = 10;
+			}
+			if(strpos($mes, 'noviembre') !== false){
+				$mesNumero = 11;
+			}
+			if(strpos($mes, 'diciembre') !== false){
+				$mesNumero = 12;
+			}
+
 			return strtotime( date('Y') . "-" . $mesNumero . "-" . $dia );
 		}
 		/////////////////////////////////////////////////////
@@ -329,11 +352,28 @@
 
 		/////////////////////////FUNCIONES CADENA/////////////
 		function traerHtml($url){
+
+			//1º
+			// $options = array('http' =>
+			//     array( 'header' => 'User-Agent: Mozilla/5.0 (Windows; U; Windows NT 6.1; es-CL; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3' . PHP_EOL )
+			// );
+			// $context = stream_context_create($options);
+			// $html = file_get_contents($url);
+
+			//2º
 			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en; rv:1.9.2.13) Gecko/20101203 Firefox/3.6.13');
+			$header = array(
+			    'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+			    'Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7',
+			    'Accept-Language: en-us;q=0.8,en;q=0.6'
+			);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
 			curl_setopt($ch, CURLOPT_URL, $url);
 			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 			$html = curl_exec($ch);
 			curl_close($ch);
+
 			return $html;
 		}
 
@@ -352,10 +392,10 @@
 		}
 
 		function aumentar_mes($mesActual,$anoActual){
-			if($mes == 12){
+			if($mesActual == 12){
 				return array("mes"=>"1","ano"=>($anoActual+1));
 			}else{
-				return array("mes"=>($mes+1),"ano"=>$anoActual);
+				return array("mes"=>($mesActual+1),"ano"=>$anoActual);
 			}
 		}
 		/////////////////////////////////////////////////////
