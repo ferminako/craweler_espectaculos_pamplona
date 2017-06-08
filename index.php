@@ -19,6 +19,9 @@
 	// $eventosBaranain = $funciones->traerEventosBaranain();
 	// echo '<pre>';var_dump($eventosBaranain);echo '</pre>';exit;
 	// 3º Gayarre
-	$eventosGayarre = $funciones->traerEventosGayarre();
-	echo '<pre>';var_dump($eventosGayarre);echo '</pre>';exit;
+	// $eventosGayarre = $funciones->traerEventosGayarre();
+	// echo '<pre>';var_dump($eventosGayarre);echo '</pre>';exit;
+	//4º Museo
+	$eventosMuseo = $funciones->traerEventosMuseo();
+	echo '<pre>';var_dump($eventosMuseo);echo '</pre>';exit;
 ?>

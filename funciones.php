@@ -10,342 +10,584 @@
 
 
 		///////////////////////BALUARTE///////////////////////
-		function traerEventosBaluarte(){
-			$urlsBaluarte = array();
-			$eventosBaluarte = array();
-			/*Preparo las urls para las fechas de 3 meses vista*/
-			$mesActual = date('Y-n');
-			for ($i=0; $i < 3; $i++) {
+			function traerEventosBaluarte(){
 				$urlsBaluarte = array();
-				$auxUrl = $this->urlBaluarte."?tipo=&fecha=".$mesActual;
-				$urlsBaluarte = $this->obtenerLinksBaluarte($this->traerHtml($auxUrl));
-				foreach ($urlsBaluarte as $key => $url) {
-					$eventosBaluarte[] = $this->parseHtmlBaluarte($url);
+				$eventosBaluarte = array();
+				/*Preparo las urls para las fechas de 3 meses vista*/
+				$mesActual = date('Y-n');
+				for ($i=0; $i < 3; $i++) {
+					$urlsBaluarte = array();
+					$auxUrl = $this->urlBaluarte."?tipo=&fecha=".$mesActual;
+					$urlsBaluarte = $this->obtenerLinksBaluarte($this->traerHtml($auxUrl));
+					foreach ($urlsBaluarte as $key => $url) {
+						$eventosBaluarte[] = $this->parseHtmlBaluarte($url);
+					}
+					//Aumento un mes
+					$occDate=$mesActual.'-01';
+	 				$mesActual= date('Y-n', strtotime("+1 month", strtotime($occDate)));
 				}
-				//Aumento un mes
-				$occDate=$mesActual.'-01';
- 				$mesActual= date('Y-n', strtotime("+1 month", strtotime($occDate)));
-			}
-			return $eventosBaluarte;
-		}
-
-		function obtenerLinksBaluarte($html){
-			$urlsBaluarte = array();
-			//Obtengo div id noticias
-			$doc = phpQuery::newDocument($html);
-			$divEventos = pq('#noticias');
-
-			//Recorro ese div buscando la url detalle de cada evento
-			foreach( $divEventos->find('div.noticia') as $divEvento ) {
-				$urlEvento = pq($divEvento)->find('a.bloque')->attr('href');
-				$urlsBaluarte[] = "http://baluarte.com/".$urlEvento;
-				// echo "http://baluarte.com/".$urlEvento."<br>";
+				return $eventosBaluarte;
 			}
 
-			return $urlsBaluarte;
-		}
+			function obtenerLinksBaluarte($html){
+				$urlsBaluarte = array();
+				//Obtengo div id noticias
+				$doc = phpQuery::newDocument($html);
+				$divEventos = pq('#noticias');
 
-		function parseHtmlBaluarte($url){
+				//Recorro ese div buscando la url detalle de cada evento
+				foreach( $divEventos->find('div.noticia') as $divEvento ) {
+					$urlEvento = pq($divEvento)->find('a.bloque')->attr('href');
+					$urlsBaluarte[] = "http://baluarte.com/".$urlEvento;
+					// echo "http://baluarte.com/".$urlEvento."<br>";
+				}
 
-			$urlWeb = bitly::acortarUrl($url);
-			$html = $this->traerHtml($url);
-
-			$doc = phpQuery::newDocument($html);
-			$divEvento = pq('.ficha_espectaculo');
-
-			$divFoto = pq($divEvento)->find('div#foto1');
-			$auxImagen = "http://baluarte.com/" . pq($divFoto)->find('img')->attr('src');
-			$imagen = str_replace('340', '586', $auxImagen);
-
-			$divNoticia = pq($divEvento)->find('div#ficha_noticia');
-
-			$titulo = strip_tags(utf8_encode(pq($divNoticia)->find('h1')));
-
-			$tipo = $this->get_string_between(rtrim(trim(utf8_encode(pq($divNoticia)->find('div.definicion')))),'<div class="definicion">','</div>');
-
-			$fechaHora = utf8_encode(pq($divNoticia)->find('div.fecha_espectaculo'));
-			$fechaTexto = $this->get_string_between($fechaHora,"<strong>","</strong>");
-			$fechaUnix = $this->obtenerUnixTimeBaluarte($fechaTexto);
-
-			$auxHora0 = explode("</strong>", $fechaHora);
-			$auxHora1 = explode("·",$auxHora0[1]);
-			$hora = rtrim(trim($auxHora1[0]));
-
-			$cadena = str_replace('</div>', '', $auxHora1[1]);
-			$lugar = "Baluarte, ". trim(rtrim($cadena));
-
-			$texto = "";
-			foreach(pq($divNoticia)->find('p') as $divContenido) {
-				$texto .= $divContenido->textContent."<br>";
+				return $urlsBaluarte;
 			}
 
-			$precio = rtrim(trim(strip_tags(utf8_encode(pq($divEvento)->find('span.precios')))))." €";
+			function parseHtmlBaluarte($url){
 
-			$urlCompraEntradas = $this->get_string_between(pq($divEvento)->find('div.compraentrada')->find('a')->attr('onclick'),"compraEntradas('","')");
-			$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
+				$urlWeb = bitly::acortarUrl($url);
+				$html = $this->traerHtml($url);
 
-			return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
-			// return new Evento($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
-		}
+				$doc = phpQuery::newDocument($html);
+				$divEvento = pq('.ficha_espectaculo');
 
-		function obtenerUnixTimeBaluarte($fechaTexto){
-			$fechaSinDiaSemana = explode(",", $fechaTexto);
-			$auxFecha=explode(" ",$fechaSinDiaSemana[0]);
-			$dia = $auxFecha[0];
-			$mes = strtolower($auxFecha[1]);
-			$mesNumero = 0;
-			switch ($mes) {
-				case 'enero':
-					$mesNumero = 1;break;
-				case 'febrero':
-					$mesNumero = 2;break;
-				case 'marzo':
-					$mesNumero = 3;break;
-				case 'abril':
-					$mesNumero = 4;break;
-				case 'mayo':
-					$mesNumero = 5;break;
-				case 'junio':
-					$mesNumero = 6;break;
-				case 'julio':
-					$mesNumero = 7;break;
-				case 'agosto':
-					$mesNumero = 8;break;
-				case 'septiembre':
-					$mesNumero = 9;break;
-				case 'octubre':
-					$mesNumero = 10;break;
-				case 'noviembre':
-					$mesNumero = 11;break;
-				case 'diciembre':
-					$mesNumero = 12;break;
+				$divFoto = pq($divEvento)->find('div#foto1');
+				$auxImagen = "http://baluarte.com/" . pq($divFoto)->find('img')->attr('src');
+				$imagen = str_replace('340', '586', $auxImagen);
+
+				$divNoticia = pq($divEvento)->find('div#ficha_noticia');
+
+				$titulo = strip_tags(utf8_encode(pq($divNoticia)->find('h1')));
+
+				$tipo = $this->get_string_between(rtrim(trim(utf8_encode(pq($divNoticia)->find('div.definicion')))),'<div class="definicion">','</div>');
+
+				$fechaHora = utf8_encode(pq($divNoticia)->find('div.fecha_espectaculo'));
+				$fechaTexto = $this->get_string_between($fechaHora,"<strong>","</strong>");
+				$fechaUnix = $this->obtenerUnixTimeBaluarte($fechaTexto);
+
+				$auxHora0 = explode("</strong>", $fechaHora);
+				$auxHora1 = explode("·",$auxHora0[1]);
+				$hora = rtrim(trim($auxHora1[0]));
+
+				$cadena = str_replace('</div>', '', $auxHora1[1]);
+				$lugar = "Baluarte, ". trim(rtrim($cadena));
+
+				$texto = "";
+				foreach(pq($divNoticia)->find('p') as $divContenido) {
+					$texto .= $divContenido->textContent."<br>";
+				}
+
+				$precio = rtrim(trim(strip_tags(utf8_encode(pq($divEvento)->find('span.precios')))))." €";
+
+				$urlCompraEntradas = $this->get_string_between(pq($divEvento)->find('div.compraentrada')->find('a')->attr('onclick'),"compraEntradas('","')");
+				$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
+
+				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
+				// return new Evento($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 			}
-			return strtotime( date('Y') . "-" . $mesNumero . "-" . $dia );
-		}
+
+			function obtenerUnixTimeBaluarte($fechaTexto){
+				$fechaSinDiaSemana = explode(",", $fechaTexto);
+				$auxFecha=explode(" ",$fechaSinDiaSemana[0]);
+				$dia = $auxFecha[0];
+				$mes = strtolower($auxFecha[1]);
+				$mesNumero = 0;
+				switch ($mes) {
+					case 'enero':
+						$mesNumero = 1;break;
+					case 'febrero':
+						$mesNumero = 2;break;
+					case 'marzo':
+						$mesNumero = 3;break;
+					case 'abril':
+						$mesNumero = 4;break;
+					case 'mayo':
+						$mesNumero = 5;break;
+					case 'junio':
+						$mesNumero = 6;break;
+					case 'julio':
+						$mesNumero = 7;break;
+					case 'agosto':
+						$mesNumero = 8;break;
+					case 'septiembre':
+						$mesNumero = 9;break;
+					case 'octubre':
+						$mesNumero = 10;break;
+					case 'noviembre':
+						$mesNumero = 11;break;
+					case 'diciembre':
+						$mesNumero = 12;break;
+				}
+				return strtotime( date('Y') . "-" . $mesNumero . "-" . $dia );
+			}
 		/////////////////////////////////////////////////////
 
 
 		///////////////////////BARAÑAIN///////////////////////
-		function traerEventosBaranain(){
-			$urls = array();
-			$eventos = array();
-			$auxUrl = "http://www.auditoriobaranain.com/programacion/";
-			$urls = $this->obtenerLinksBaranain($this->traerHtml($auxUrl));
-			foreach ($urls as $key => $url) {
-				$eventos[] = $this->parseHtmlBaranain($url);
-			}
-			return $eventos;
-		}
-
-		function obtenerLinksBaranain($html){
-			$urls = array();
-			$doc = phpQuery::newDocument($html);
-			$divEventos = pq('div.concept-gallery');
-			//Recorro ese div buscando la url detalle de cada evento
-			foreach( $divEventos->find('div.isotope-item') as $divEvento ) {
-				$urlEvento = pq($divEvento)->find('h4')->find('a')->attr('href');
-				$urls[] = $urlEvento;;
-			}
-			return $urls;
-		}
-
-		function parseHtmlBaranain($url){
-			// echo $url."<br>";
-			$urlWeb = bitly::acortarUrl($url);
-			$html = $this->traerHtml($url);
-			$doc = phpQuery::newDocument($html);
-			$divEvento = pq('#Descripcion_evento');
-			$divTitulo = pq('#Titulo');
-
-			$imagen = pq($divEvento)->find('div.vc_single_image-wrapper')->find('img')->attr('src');
-			$titulo = strip_tags(pq($divTitulo)->find('h1'));
-			$tipo = strip_tags(pq($divTitulo)->find('h5'));
-
-			$aux =  pq($divEvento)->find('p:first');
-			$auxFecha = $this->get_string_between($aux,'<p>','<br>');
-			$auxFecha = explode('</span>', $aux);
-			$auxFecha = explode(',', $auxFecha[1]);
-			$fechaTexto = trim(rtrim($auxFecha[0]));
-			$fechaUnix = $this->obtenerUnixTimeBaluarte($fechaTexto);
-			$hora = rtrim(trim($auxFecha = $this->get_string_between($aux,'<br><span class="text-uppercase"><strong>Horario:</strong></span>','<br>')));
-			$lugar ="Auditorio Barañain," . rtrim(trim($this->get_string_between($aux,'<strong>Sala:</strong></span>','</p>')));
-
-			$aux =  pq($divEvento)->find('ul.disc-list');
-			$precio = "";
-			foreach ($aux->find('li') as $key => $p) {
-				$precio .= $p->textContent."<br>";
+			function traerEventosBaranain(){
+				$urls = array();
+				$eventos = array();
+				$auxUrl = "http://www.auditoriobaranain.com/programacion/";
+				$urls = $this->obtenerLinksBaranain($this->traerHtml($auxUrl));
+				foreach ($urls as $key => $url) {
+					$eventos[] = $this->parseHtmlBaranain($url);
+				}
+				return $eventos;
 			}
 
-			$urlCompraEntradas =  pq($divEvento)->find('div.vc_btn3-container')->find('a.vc_general')->attr('href');
-			$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
-
-			$texto = "";
-			foreach(pq($divEvento)->find('div.vc_tta-panel-body')->find('div.wpb_text_column')->find('div.wpb_wrapper')->find('p') as $contenido) {
-				$texto .= $contenido->textContent."<br>";
+			function obtenerLinksBaranain($html){
+				$urls = array();
+				$doc = phpQuery::newDocument($html);
+				$divEventos = pq('div.concept-gallery');
+				//Recorro ese div buscando la url detalle de cada evento
+				foreach( $divEventos->find('div.isotope-item') as $divEvento ) {
+					$urlEvento = pq($divEvento)->find('h4')->find('a')->attr('href');
+					$urls[] = $urlEvento;;
+				}
+				return $urls;
 			}
-			return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
-		}
 
-		function obtenerUnixTimeBaranain($fechaTexto){
-			$fechaSinDiaSemana = explode(",", $fechaTexto);
-			$auxFecha=explode(" ",$fechaSinDiaSemana[0]);
-			$dia = $auxFecha[0];
-			$mes = strtolower($auxFecha[1]);
-			$mesNumero = 0;
-			switch ($mes) {
-				case 'enero':
-					$mesNumero = 1;break;
-				case 'febrero':
-					$mesNumero = 2;break;
-				case 'marzo':
-					$mesNumero = 3;break;
-				case 'abril':
-					$mesNumero = 4;break;
-				case 'mayo':
-					$mesNumero = 5;break;
-				case 'junio':
-					$mesNumero = 6;break;
-				case 'julio':
-					$mesNumero = 7;break;
-				case 'agosto':
-					$mesNumero = 8;break;
-				case 'septiembre':
-					$mesNumero = 9;break;
-				case 'octubre':
-					$mesNumero = 10;break;
-				case 'noviembre':
-					$mesNumero = 11;break;
-				case 'diciembre':
-					$mesNumero = 12;break;
+			function parseHtmlBaranain($url){
+				// echo $url."<br>";
+				$urlWeb = bitly::acortarUrl($url);
+				$html = $this->traerHtml($url);
+				$doc = phpQuery::newDocument($html);
+				$divEvento = pq('#Descripcion_evento');
+				$divTitulo = pq('#Titulo');
+
+				$imagen = pq($divEvento)->find('div.vc_single_image-wrapper')->find('img')->attr('src');
+				$titulo = strip_tags(pq($divTitulo)->find('h1'));
+				$tipo = strip_tags(pq($divTitulo)->find('h5'));
+
+				$aux =  pq($divEvento)->find('p:first');
+				$auxFecha = $this->get_string_between($aux,'<p>','<br>');
+				$auxFecha = explode('</span>', $aux);
+				$auxFecha = explode(',', $auxFecha[1]);
+				$fechaTexto = trim(rtrim($auxFecha[0]));
+				$fechaUnix = $this->obtenerUnixTimeBaluarte($fechaTexto);
+				$hora = rtrim(trim($auxFecha = $this->get_string_between($aux,'<br><span class="text-uppercase"><strong>Horario:</strong></span>','<br>')));
+				$lugar ="Auditorio Barañain," . rtrim(trim($this->get_string_between($aux,'<strong>Sala:</strong></span>','</p>')));
+
+				$aux =  pq($divEvento)->find('ul.disc-list');
+				$precio = "";
+				foreach ($aux->find('li') as $key => $p) {
+					$precio .= $p->textContent."<br>";
+				}
+
+				$urlCompraEntradas =  pq($divEvento)->find('div.vc_btn3-container')->find('a.vc_general')->attr('href');
+				$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
+
+				$texto = "";
+				foreach(pq($divEvento)->find('div.vc_tta-panel-body')->find('div.wpb_text_column')->find('div.wpb_wrapper')->find('p') as $contenido) {
+					$texto .= $contenido->textContent."<br>";
+				}
+				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 			}
-			return strtotime( date('Y') . "-" . $mesNumero . "-" . $dia );
-		}
+
+			function obtenerUnixTimeBaranain($fechaTexto){
+				$fechaSinDiaSemana = explode(",", $fechaTexto);
+				$auxFecha=explode(" ",$fechaSinDiaSemana[0]);
+				$dia = $auxFecha[0];
+				$mes = strtolower($auxFecha[1]);
+				$mesNumero = 0;
+				switch ($mes) {
+					case 'enero':
+						$mesNumero = 1;break;
+					case 'febrero':
+						$mesNumero = 2;break;
+					case 'marzo':
+						$mesNumero = 3;break;
+					case 'abril':
+						$mesNumero = 4;break;
+					case 'mayo':
+						$mesNumero = 5;break;
+					case 'junio':
+						$mesNumero = 6;break;
+					case 'julio':
+						$mesNumero = 7;break;
+					case 'agosto':
+						$mesNumero = 8;break;
+					case 'septiembre':
+						$mesNumero = 9;break;
+					case 'octubre':
+						$mesNumero = 10;break;
+					case 'noviembre':
+						$mesNumero = 11;break;
+					case 'diciembre':
+						$mesNumero = 12;break;
+				}
+				return strtotime( date('Y') . "-" . $mesNumero . "-" . $dia );
+			}
 		/////////////////////////////////////////////////////
 
 		///////////////////////GAYARRE///////////////////////
-		function traerEventosGayarre(){
+			function traerEventosGayarre(){
 
-			$urlsGayarre = array();
-			$eventosGayarre = array();
-			/*Preparo las urls para las fechas de 3 meses vista*/
-			$mesActual = date('n');
-			$anoActual = date('Y');
-			for ($i=0; $i < 3; $i++) {
 				$urlsGayarre = array();
-				$auxUrl = $this->urlGayarre."?mesAgenda=".$mesActual."&annoAgenda=".$anoActual;
-				$urlsGayarre = $this->obtenerLinksGayarre($this->traerHtml($auxUrl));
-				foreach ($urlsGayarre as $key => $url) {
-					$eventosGayarre[] = $this->parseHtmlGayarre($url);
+				$eventosGayarre = array();
+				/*Preparo las urls para las fechas de 3 meses vista*/
+				$mesActual = date('n');
+				$anoActual = date('Y');
+				for ($i=0; $i < 3; $i++) {
+					$urlsGayarre = array();
+					$auxUrl = $this->urlGayarre."?mesAgenda=".$mesActual."&annoAgenda=".$anoActual;
+					$urlsGayarre = $this->obtenerLinksGayarre($this->traerHtml($auxUrl));
+					foreach ($urlsGayarre as $key => $url) {
+						$eventosGayarre[] = $this->parseHtmlGayarre($url);
+					}
+					//Aumento un mes
+	 				$fecha= $this->aumentar_mes($mesActual,$anoActual);
+	 				$mesActual = $fecha["mes"];
+	 				$anoActual = $fecha["ano"];
 				}
-				//Aumento un mes
- 				$fecha= $this->aumentar_mes($mesActual,$anoActual);
- 				$mesActual = $fecha["mes"];
- 				$anoActual = $fecha["ano"];
+				return $eventosGayarre;
 			}
-			return $eventosGayarre;
-		}
 
-		function obtenerLinksGayarre($html){
-			$urls = array();
-			$doc = phpQuery::newDocument($html);
-			$divEventos = pq('#listaProgramacion');
-			//Recorro ese div buscando la url detalle de cada evento
-			foreach( $divEventos->find('tr') as $key=>$divEvento ) {
+			function obtenerLinksGayarre($html){
+				$urls = array();
+				$doc = phpQuery::newDocument($html);
+				$divEventos = pq('#listaProgramacion');
+				//Recorro ese div buscando la url detalle de cada evento
+				foreach( $divEventos->find('tr') as $key=>$divEvento ) {
 
-				if( $key > 0 ){
-					$urlEvento = pq($divEvento)->find('td:nth-child(4)')->find('a')->attr('href');
-					$urls[] = "http://teatrogayarre.com/portal/". $urlEvento;
+					if( $key > 0 ){
+						$urlEvento = pq($divEvento)->find('td:nth-child(4)')->find('a')->attr('href');
+						$urls[] = "http://teatrogayarre.com/portal/". $urlEvento;
+					}
 				}
-			}
-			return $urls;
-		}
-
-		function parseHtmlGayarre($url){
-			$urlWeb = bitly::acortarUrl($url);
-			$html = $this->traerHtml($url);
-
-			$doc = phpQuery::newDocument($html);
-			$divPreEvento = pq('.cuerpoEvento');
-			$divEvento = pq('#op1');
-			$divInfoEvento = pq('.infoEvento');
-
-			$imagen = "http://teatrogayarre.com/" . pq($divPreEvento)->find('img')->attr('src');
-			$titulo = strip_tags(pq($divEvento)->find('h2'));
-			$tipo = pq($divInfoEvento)->find('div#zonaFechas')->find('h3:first');
-			$tipo = $this->get_string_between($tipo, '</span>', '</h3>');
-			$aux = pq($divInfoEvento)->find('div.fechas')->find('div.fecha');
-			$aux = explode("-", $aux);
-			$fechaTexto = rtrim(trim(strtolower(str_replace('de', '', $aux[1]))));
-			$fechaTexto = str_replace('  ', ' ', $fechaTexto);
-			$fechaUnix = $this->obtenerUnixTimeGayarre($fechaTexto);
-			$hora = rtrim(trim(strip_tags(pq($divInfoEvento)->find('div.fechas')->find('div.hora'))));
-			$lugar ="Teatro Gayarre, Sala Principal";
-			$tablaPrecios = pq($divInfoEvento)->find('table.precio');
-			$precio = "";
-			foreach ($tablaPrecios->find('tr') as $key => $p) {
-				$aux_precio = str_replace('Sala', 'Sala ', $p->textContent);
-				$aux_precio = str_replace('Palco', 'Palco ', $aux_precio);
-				$aux_precio = str_replace('Anfiteatro', 'Anfiteatro ', $aux_precio);
-				$precio .= $aux_precio . "<br>";
-			}
-			$urlCompraEntradas = pq($divInfoEvento)->find('p.compra')->find('a')->attr('href');
-			$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
-
-			$texto = "";
-			foreach ($divEvento->find('div:first')->find('p') as $key => $p) {
-			 	$texto .= $p->textContent."<br>";
+				return $urls;
 			}
 
-			return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
-		}
+			function parseHtmlGayarre($url){
+				$urlWeb = bitly::acortarUrl($url);
+				$html = $this->traerHtml($url);
 
-		function obtenerUnixTimeGayarre($fechaTexto){
+				$doc = phpQuery::newDocument($html);
+				$divPreEvento = pq('.cuerpoEvento');
+				$divEvento = pq('#op1');
+				$divInfoEvento = pq('.infoEvento');
 
-			$aux = explode(" ", $fechaTexto);
-			$dia = $aux[0];
-			$mes = $aux[2];
+				$imagen = "http://teatrogayarre.com/" . pq($divPreEvento)->find('img')->attr('src');
+				$titulo = strip_tags(pq($divEvento)->find('h2'));
+				$tipo = pq($divInfoEvento)->find('div#zonaFechas')->find('h3:first');
+				$tipo = $this->get_string_between($tipo, '</span>', '</h3>');
+				$aux = pq($divInfoEvento)->find('div.fechas')->find('div.fecha');
+				$aux = explode("-", $aux);
+				$fechaTexto = rtrim(trim(strtolower(str_replace('de', '', $aux[1]))));
+				$fechaTexto = str_replace('  ', ' ', $fechaTexto);
+				$fechaUnix = $this->obtenerUnixTimeGayarre($fechaTexto);
+				$hora = rtrim(trim(strip_tags(pq($divInfoEvento)->find('div.fechas')->find('div.hora'))));
+				$lugar ="Teatro Gayarre, Sala Principal";
+				$tablaPrecios = pq($divInfoEvento)->find('table.precio');
+				$precio = "";
+				foreach ($tablaPrecios->find('tr') as $key => $p) {
+					$aux_precio = str_replace('Sala', 'Sala ', $p->textContent);
+					$aux_precio = str_replace('Palco', 'Palco ', $aux_precio);
+					$aux_precio = str_replace('Anfiteatro', 'Anfiteatro ', $aux_precio);
+					$precio .= $aux_precio . "<br>";
+				}
+				$urlCompraEntradas = pq($divInfoEvento)->find('p.compra')->find('a')->attr('href');
+				$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
 
-			$mesNumero = 0;
+				$texto = "";
+				foreach ($divEvento->find('div:first')->find('p') as $key => $p) {
+				 	$texto .= $p->textContent."<br>";
+				}
 
-			if(strpos($mes, 'enero') !== false){
-				$mesNumero = 1;
-			}
-			if(strpos($mes, 'febrero') !== false){
-				$mesNumero = 2;
-			}
-			if(strpos($mes, 'marzo') !== false){
-				$mesNumero = 3;
-			}
-			if(strpos($mes, 'abril') !== false){
-				$mesNumero = 4;
-			}
-			if(strpos($mes, 'mayo') !== false){
-				$mesNumero = 5;
-			}
-			if(strpos($mes, 'junio') !== false){
-				$mesNumero = 6;
-			}
-			if(strpos($mes, 'julio') !== false){
-				$mesNumero = 7;
-			}
-			if(strpos($mes, 'agosto') !== false){
-				$mesNumero = 8;
-			}
-			if(strpos($mes, 'septiembre') !== false){
-				$mesNumero = 9;
-			}
-			if(strpos($mes, 'octubre') !== false){
-				$mesNumero = 10;
-			}
-			if(strpos($mes, 'noviembre') !== false){
-				$mesNumero = 11;
-			}
-			if(strpos($mes, 'diciembre') !== false){
-				$mesNumero = 12;
+				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 			}
 
-			return strtotime( date('Y') . "-" . $mesNumero . "-" . $dia );
-		}
+			function obtenerUnixTimeGayarre($fechaTexto){
+
+				$aux = explode(" ", $fechaTexto);
+				$dia = $aux[0];
+				$mes = $aux[2];
+
+				$mesNumero = 0;
+
+				if(strpos($mes, 'enero') !== false){
+					$mesNumero = 1;
+				}
+				if(strpos($mes, 'febrero') !== false){
+					$mesNumero = 2;
+				}
+				if(strpos($mes, 'marzo') !== false){
+					$mesNumero = 3;
+				}
+				if(strpos($mes, 'abril') !== false){
+					$mesNumero = 4;
+				}
+				if(strpos($mes, 'mayo') !== false){
+					$mesNumero = 5;
+				}
+				if(strpos($mes, 'junio') !== false){
+					$mesNumero = 6;
+				}
+				if(strpos($mes, 'julio') !== false){
+					$mesNumero = 7;
+				}
+				if(strpos($mes, 'agosto') !== false){
+					$mesNumero = 8;
+				}
+				if(strpos($mes, 'septiembre') !== false){
+					$mesNumero = 9;
+				}
+				if(strpos($mes, 'octubre') !== false){
+					$mesNumero = 10;
+				}
+				if(strpos($mes, 'noviembre') !== false){
+					$mesNumero = 11;
+				}
+				if(strpos($mes, 'diciembre') !== false){
+					$mesNumero = 12;
+				}
+
+				return strtotime( date('Y') . "-" . $mesNumero . "-" . $dia );
+			}
+		/////////////////////////////////////////////////////
+
+		///////////////////////MUSEO///////////////////////
+			function traerEventosMuseo(){
+				$eventosMuseo = array();
+				$urlsMuseo = array();
+				$auxUrl = $this->urlMuseo;
+				$urlsMuseo = $this->obtenerLinksMuseo($this->traerHtml($auxUrl));
+				foreach ($urlsMuseo as $key => $url) {
+					$eventosMuseo[] = $this->parseHtmlMuseo($url);
+				}
+				return $eventosMuseo;
+			}
+
+			function obtenerLinksMuseo($html){
+				$urls = array();
+				$doc = phpQuery::newDocument($html);
+				$divEventos = pq('#p_p_id_listadoEventos_WAR_listadoEventosportlet_');
+				//Recorro ese div buscando la url detalle de cada evento
+				foreach( $divEventos->find('div.evento') as $divEvento ) {
+						$urls[] = "http://museo.unav.edu" . pq($divEvento)->find('a')->attr('href');
+				}
+				return $urls;
+			}
+
+			function parseHtmlMuseo($url){
+				// echo $url."<br>";exit;
+				$urlWeb = bitly::acortarUrl($url);
+				$html = $this->traerHtml($url);
+				$doc = phpQuery::newDocument($html);
+				$divEvento = pq('div.detail');
+				$imagen = "http://museo.unav.edu" . pq($divEvento)->find('img:first')->attr('src');
+				$titulo = trim(rtrim(strip_tags(pq($divEvento)->find('h4:first'))));
+				$tipo = "Artístico";
+				$aux = pq($divEvento)->find('div.uppercase')->find('a:first');
+				$aux = $this->get_string_between($aux, '">', '</a>');
+				$auxFechaHora = explode('de', $aux);
+
+				$auxFechaDia = $auxFechaHora[0];
+				$auxFechaMes = $auxFechaHora[1];
+				$auxAnoHora = $auxFechaHora[2];
+
+				$auxFechaTexto = explode(',', $auxFechaDia);
+				$fechaTexto = trim(rtrim($auxFechaTexto[1]. $auxFechaMes));
+				$fechaUnix = $this->obtenerUnixTimeMuseo($fechaTexto);
+				$fechaTexto = str_replace('  ', ' ', $fechaTexto);
+				$auxHora = explode(', a las ', $auxFechaHora[2]);
+				$hora = $auxHora[1]."h";
+				$lugar = "";
+				foreach (pq($divEvento)->find('div.uppercase')->find('a') as $key => $item) {
+					if($key == 1){
+						$lugar = $item->textContent;
+					}
+				}
+
+				$precio = "";
+				foreach (pq($divEvento)->find('p') as $key => $item) {
+					if( strpos($item->textContent, 'Entrada general') !== false ){
+						$precio = rtrim(trim($this->get_string_between($item->textContent, 'Entrada general: ', 'A los precios de')));
+					}
+				}
+
+				$urlCompraEntradas = pq($divEvento)->find('div.boton-compra-class')->find('a')->attr('href');
+				$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
+
+				$texto = "";
+				foreach ($divEvento->find('p') as $key => $p) {
+				 	$texto .= $p->textContent."<br>";
+				}
+
+				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
+			}
+
+			function obtenerUnixTimeMuseo($fechaTexto){
+
+				$aux = explode(" ", $fechaTexto);
+
+				$dia = $aux[0];
+				$mes = $aux[2];
+
+				$mesNumero = 0;
+
+				if(strpos($mes, 'enero') !== false){
+					$mesNumero = 1;
+				}
+				if(strpos($mes, 'febrero') !== false){
+					$mesNumero = 2;
+				}
+				if(strpos($mes, 'marzo') !== false){
+					$mesNumero = 3;
+				}
+				if(strpos($mes, 'abril') !== false){
+					$mesNumero = 4;
+				}
+				if(strpos($mes, 'mayo') !== false){
+					$mesNumero = 5;
+				}
+				if(strpos($mes, 'junio') !== false){
+					$mesNumero = 6;
+				}
+				if(strpos($mes, 'julio') !== false){
+					$mesNumero = 7;
+				}
+				if(strpos($mes, 'agosto') !== false){
+					$mesNumero = 8;
+				}
+				if(strpos($mes, 'septiembre') !== false){
+					$mesNumero = 9;
+				}
+				if(strpos($mes, 'octubre') !== false){
+					$mesNumero = 10;
+				}
+				if(strpos($mes, 'noviembre') !== false){
+					$mesNumero = 11;
+				}
+				if(strpos($mes, 'diciembre') !== false){
+					$mesNumero = 12;
+				}
+
+				return strtotime( date('Y') . "-" . $mesNumero . "-" . $dia );
+			}
+		/////////////////////////////////////////////////////
+
+		///////////////////////ZENTRAL///////////////////////
+			function traerEventosZentral(){
+				$eventosZentral = array();
+				$urlsZentral = array();
+				$auxUrl = $this->urlZentral;
+				$urlsZentral = $this->obtenerLinksZentral($this->traerHtml($auxUrl));
+				foreach ($urlsZentral as $key => $url) {
+					$eventosZentral[] = $this->parseHtmlZentral($url);
+				}
+				return $eventosZentral;
+			}
+
+			function obtenerLinksZentral($html){
+				$urls = array();
+				$doc = phpQuery::newDocument($html);
+				$divEventos = pq('#p_p_id_listadoEventos_WAR_listadoEventosportlet_');
+				//Recorro ese div buscando la url detalle de cada evento
+				foreach( $divEventos->find('div.evento') as $divEvento ) {
+						$urls[] = "http://Zentral.unav.edu" . pq($divEvento)->find('a')->attr('href');
+				}
+				return $urls;
+			}
+
+			function parseHtmlZentral($url){
+				// echo $url."<br>";exit;
+				$urlWeb = bitly::acortarUrl($url);
+				$html = $this->traerHtml($url);
+				$doc = phpQuery::newDocument($html);
+				$divEvento = pq('div.detail');
+				$imagen = "http://Zentral.unav.edu" . pq($divEvento)->find('img:first')->attr('src');
+				$titulo = trim(rtrim(strip_tags(pq($divEvento)->find('h4:first'))));
+				$tipo = "Artístico";
+				$aux = pq($divEvento)->find('div.uppercase')->find('a:first');
+				$aux = $this->get_string_between($aux, '">', '</a>');
+				$auxFechaHora = explode('de', $aux);
+
+				$auxFechaDia = $auxFechaHora[0];
+				$auxFechaMes = $auxFechaHora[1];
+				$auxAnoHora = $auxFechaHora[2];
+
+				$auxFechaTexto = explode(',', $auxFechaDia);
+				$fechaTexto = trim(rtrim($auxFechaTexto[1]. $auxFechaMes));
+				$fechaUnix = $this->obtenerUnixTimeZentral($fechaTexto);
+				$fechaTexto = str_replace('  ', ' ', $fechaTexto);
+				$auxHora = explode(', a las ', $auxFechaHora[2]);
+				$hora = $auxHora[1]."h";
+				$lugar = "";
+				foreach (pq($divEvento)->find('div.uppercase')->find('a') as $key => $item) {
+					if($key == 1){
+						$lugar = $item->textContent;
+					}
+				}
+
+				$precio = "";
+				foreach (pq($divEvento)->find('p') as $key => $item) {
+					if( strpos($item->textContent, 'Entrada general') !== false ){
+						$precio = rtrim(trim($this->get_string_between($item->textContent, 'Entrada general: ', 'A los precios de')));
+					}
+				}
+
+				$urlCompraEntradas = pq($divEvento)->find('div.boton-compra-class')->find('a')->attr('href');
+				$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
+
+				$texto = "";
+				foreach ($divEvento->find('p') as $key => $p) {
+				 	$texto .= $p->textContent."<br>";
+				}
+
+				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
+			}
+
+			function obtenerUnixTimeZentral($fechaTexto){
+
+				$aux = explode(" ", $fechaTexto);
+
+				$dia = $aux[0];
+				$mes = $aux[2];
+
+				$mesNumero = 0;
+
+				if(strpos($mes, 'enero') !== false){
+					$mesNumero = 1;
+				}
+				if(strpos($mes, 'febrero') !== false){
+					$mesNumero = 2;
+				}
+				if(strpos($mes, 'marzo') !== false){
+					$mesNumero = 3;
+				}
+				if(strpos($mes, 'abril') !== false){
+					$mesNumero = 4;
+				}
+				if(strpos($mes, 'mayo') !== false){
+					$mesNumero = 5;
+				}
+				if(strpos($mes, 'junio') !== false){
+					$mesNumero = 6;
+				}
+				if(strpos($mes, 'julio') !== false){
+					$mesNumero = 7;
+				}
+				if(strpos($mes, 'agosto') !== false){
+					$mesNumero = 8;
+				}
+				if(strpos($mes, 'septiembre') !== false){
+					$mesNumero = 9;
+				}
+				if(strpos($mes, 'octubre') !== false){
+					$mesNumero = 10;
+				}
+				if(strpos($mes, 'noviembre') !== false){
+					$mesNumero = 11;
+				}
+				if(strpos($mes, 'diciembre') !== false){
+					$mesNumero = 12;
+				}
+
+				return strtotime( date('Y') . "-" . $mesNumero . "-" . $dia );
+			}
 		/////////////////////////////////////////////////////
 
 
