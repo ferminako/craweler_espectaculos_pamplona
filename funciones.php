@@ -49,6 +49,7 @@
 				$urlWeb = bitly::acortarUrl($url);
 				$html = $this->traerHtml($url);
 
+
 				$doc = phpQuery::newDocument($html);
 				$divEvento = pq('.ficha_espectaculo');
 
@@ -79,10 +80,26 @@
 					$texto .= $divContenido->textContent."<br>";
 				}
 
+
+				if( $texto == "" ){
+					//En algunos evento, en vez de meter en <p> la descripción lo dejan directamente en un div y ademas no tiene
+					//clase ni id, por lo que debo buscar el div que no contenga las clases del resto de divs contenidos en
+					//el div .fecha_espectaculo .
+					foreach(pq($divNoticia)->find('div:not(.cuadro .definicion .fecha_espectaculo .descripcion .addthis_inline_share_toolbox 	.info_extra .cuadro)') as $divContenido) {
+						$texto .= $divContenido->textContent."<br>";
+					}
+				}
+
 				$precio = rtrim(trim(strip_tags(utf8_encode(pq($divEvento)->find('span.precios')))))." €";
+				$precio = str_replace('?', '', $precio);
 
 				$urlCompraEntradas = $this->get_string_between(pq($divEvento)->find('div.compraentrada')->find('a')->attr('onclick'),"compraEntradas('","')");
 				$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
+
+				$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
+									<p><span style="font-family: Arial, sans-serif; font-size: 11px;">' . $precio . '</span></p>';
+				$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
+
 				// echo '<pre>';var_dump(array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen));echo '</pre>';exit;
 				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 				// return new Evento($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
@@ -120,7 +137,15 @@
 					case 'diciembre':
 						$mesNumero = 12;break;
 				}
-				return strtotime( date('Y') . "-" . $mesNumero . "-" . $dia );
+
+				$ano = null;
+				if($mesNumero < date('m')){
+					$ano = date('Y') +1;
+				}else{
+					$ano = date('Y');
+				}
+
+				return strtotime( $ano . "-" . $mesNumero . "-" . $dia );
 			}
 		/////////////////////////////////////////////////////
 
@@ -219,7 +244,14 @@
 					case 'diciembre':
 						$mesNumero = 12;break;
 				}
-				return strtotime( date('Y') . "-" . $mesNumero . "-" . $dia );
+				$ano = null;
+				if($mesNumero < date('m')){
+					$ano = date('Y') +1;
+				}else{
+					$ano = date('Y');
+				}
+
+				return strtotime( $ano . "-" . $mesNumero . "-" . $dia );
 			}
 		/////////////////////////////////////////////////////
 
@@ -345,7 +377,14 @@
 					$mesNumero = 12;
 				}
 
-				return strtotime( date('Y') . "-" . $mesNumero . "-" . $dia );
+				$ano = null;
+				if($mesNumero < date('m')){
+					$ano = date('Y') +1;
+				}else{
+					$ano = date('Y');
+				}
+
+				return strtotime( $ano . "-" . $mesNumero . "-" . $dia );
 			}
 		/////////////////////////////////////////////////////
 
@@ -466,7 +505,14 @@
 					$mesNumero = 12;
 				}
 
-				return strtotime( date('Y') . "-" . $mesNumero . "-" . $dia );
+				$ano = null;
+				if($mesNumero < date('m')){
+					$ano = date('Y') +1;
+				}else{
+					$ano = date('Y');
+				}
+
+				return strtotime( $ano . "-" . $mesNumero . "-" . $dia );
 			}
 		/////////////////////////////////////////////////////
 
@@ -574,7 +620,14 @@
 					$mesNumero = 12;
 				}
 
-				return strtotime( date('Y') . "-" . $mesNumero . "-" . $dia );
+				$ano = null;
+				if($mesNumero < date('m')){
+					$ano = date('Y') +1;
+				}else{
+					$ano = date('Y');
+				}
+
+				return strtotime( $ano . "-" . $mesNumero . "-" . $dia );
 			}
 		/////////////////////////////////////////////////////
 
@@ -633,45 +686,66 @@
 
 			//$ruta_imagen = "/home/fermin/Escritorio/htdocs/espectaculos_crawler/imagenes_eventos_origen/baranain.jpg";
 
-			function guardarImagenGayarre($url_imagen,$ruta_destino){
+			function guardarImagenGayarre($url_imagen,$ruta_destino,$nombre_imagen){
 				$image = new ImageResize($url_imagen);
 				$image->crop(586,196);
-				$image->save($ruta_destino.'Gayarre586x196.jpg');
+				$image->save($ruta_destino.$ruta_destino.$nombre_imagen.'Gayarre586x196.jpg');
 				$image->crop(80,80);
-				$image->save($ruta_destino.'Gayarre80x80.jpg');
+				$image->save($ruta_destino.$ruta_destino.$nombre_imagen.'Gayarre80x80.jpg');
 			}
 
-			function guardarImagenMuseo($url_imagen,$ruta_destino){
+			function guardarImagenMuseo($url_imagen,$ruta_destino,$nombre_imagen){
 				$image = new ImageResize($url_imagen);
 				$image->crop(586,196);
-				$image->save($ruta_destino.'Museo586x196.jpg');
+				$image->save($ruta_destino.$ruta_destino.$nombre_imagen.'Museo586x196.jpg');
 				$image->crop(80,80);
-				$image->save($ruta_destino.'Museo80x80.jpg');
+				$image->save($ruta_destino.$ruta_destino.$nombre_imagen.'Museo80x80.jpg');
 			}
 
-			function guardarImagenBaluarte($url_imagen,$ruta_destino){
-				$image = new ImageResize($ruta_imagen);
-				$image->resize(586, 196, $allow_enlarge = True);
-				$image->save($ruta_destino.'Baluarte586x196.jpg');
-				$image->resize(80, 80, $allow_enlarge = True);
-				$image->save($ruta_destino.'Baluarte80x80.jpg');
-			}
+			function guardarImagenBaluarte($url_imagen,$ruta_destino,$nombre_imagen){
+				// $image = new ImageResize($ruta_imagen);
+				// $image->resize(586, 196, $allow_enlarge = True);
+				// $image->save($ruta_destino.'Baluarte586x196.jpg');
 
-			function guardarImagenZentral($url_imagen,$ruta_destino){
 				$image = new ImageResize($url_imagen);
-				$image->resize(586, 196, $allow_enlarge = True);
-				$image->save($ruta_destino.'Zentral586x196.jpg');
+				$image->resizeToHeight(196);
+				$image->save($ruta_destino.'BaluarteProcess.jpg');
+				$this->merge($ruta_destino.'base.jpg', $ruta_destino.'BaluarteProcess.jpg', $ruta_destino.$nombre_imagen.'Baluarte586x196.jpg',400);
+				unlink( $ruta_destino.'BaluarteProcess.jpg' );
 				$image->resize(80, 80, $allow_enlarge = True);
-				$image->save($ruta_destino.'Zentral80x80.jpg');
+				$image->save($ruta_destino.$nombre_imagen.'Baluarte80x80.jpg');
 			}
 
-			function guardarImagenBaranain($url_imagen,$ruta_destino){
-				$image = new ImageResize($ruta_imagen);
-				$image->resize(586, 196, $allow_enlarge = True);
+			function guardarImagenZentral($url_imagen,$ruta_destino,$nombre_imagen){
+				// $image = new ImageResize($url_imagen);
+				// $image->resize(586, 196, $allow_enlarge = True);
+				// $image->save($ruta_destino.'Zentral586x196.jpg');
+				$image = new ImageResize($url_imagen);
+				$image->resizeToHeight(196);
+				$image->save($ruta_destino.'ZentralProcess.jpg');
+				$this->merge($ruta_destino.'base.jpg', $ruta_destino.'ZentralProcess.jpg', $ruta_destino.$nombre_imagen.'Zentral586x196.jpg',400);
+				unlink( $ruta_destino.'ZentralProcess.jpg' );
+
+				$image->resize(80, 80, $allow_enlarge = True);
+				$image->save($ruta_destino.$evento_nombre.$this->generateRandomString.'Zentral80x80.jpg');
+			}
+
+			function guardarImagenBaranain($url_imagen,$ruta_destino,$nombre_imagen){
+
+				// $ruta_imagen = "/home/fermin/Escritorio/htdocs/espectaculos_crawler/imagenes_eventos_origen/baranain.jpg";
+				$image = new ImageResize($url_imagen);
+				$image->resizeToHeight(196);
+				$image->save($ruta_destino.'BaranainProcess.jpg');
+				$this->merge($ruta_destino.'base.jpg', $ruta_destino.'BaranainProcess.jpg', $ruta_destino.$nombre_imagen.'Baranain586x196.jpg',360);
+				unlink( $ruta_destino.'BaranainProcess.jpg' );
+
+				// $image = new ImageResize($ruta_imagen);
+				// $image->resize(586, 196, $allow_enlarge = True);
 				// $image->resizeToHeight(196);
-				$image->save($ruta_destino.'Baranain586x196.jpg');
+				// $image->save($ruta_destino.'Baranain586x196.jpg');
 				$image->resize(80, 80, $allow_enlarge = True);
-				$image->save($ruta_destino.'Baranain80x80.jpg');
+				$image->save($ruta_destino.$evento_nombre.$this->generateRandomString.'Baranain80x80.jpg');
+
 			}
 
 
@@ -702,142 +776,59 @@
 					}
 			}
 
-			function insert_establishment($link,$items){
+			function insertarEvento($link,$evento,$nombre_imagen_grande,$nombre_imagen_pequena){
 
 				$link->beginTransaction();
 				try {
-
-					$statement = $link->prepare("INSERT INTO ges_contenidos(publicado,tipo_contenido,orden,categorias_id,usuarios_id,empresas_id) VALUES(:publicado,:tipo_contenido,:orden,:categorias_id,:usuarios_id,:empresas_id)");
-
-					$statement->execute(array(
-					    "publicado" =>0,
-					    "tipo_contenido" => "fichas",
-					    "orden" => null,
-					    "categorias_id"=> '88',
-					    "usuarios_id"=> "232",
-					    "empresas_id"=> "1"
-					));
-
-					$contenido_id=$link->lastInsertId();
-
-					$statement = $link->prepare("INSERT INTO ges_coordenadas(latitud,longitud,contenidos_id) VALUES(:latitud,:longitud,:contenidos_id)");
+					//array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
+					$statement = $link->prepare("INSERT INTO eventos(Nombre,Alias,Que_es,Descripcion,Lugar,Cuando,Hora,Imagen_principal,Imagen_calendario,Color,Web,Fecha_creacion,Activo) VALUES(:Nombre,:Alias,:Que_es,:Descripcion,:Lugar,:Cuando,:Hora,:Imagen_principal,:Imagen_calendario,:Color,:Web,:Fecha_creacion,:Activo)");
 
 					$statement->execute(array(
-					    "latitud" =>$items['latitud'],
-					    "longitud" => $items['longitud'],
-					    "contenidos_id" => $contenido_id
+					    "Nombre" =>$evento[0],
+					    "Alias" => $this->slug($evento[0]),
+					    "Que_es" => $evento[1],
+					    "Descripcion"=> $evento[7],
+					    "Lugar"=> $evento[5],
+					    "Cuando"=> $evento[3],
+					    "Hora"=> $evento[4],
+					    "Imagen_principal"=> $nombre_imagen_grande,
+					    "Imagen_calendario"=> $nombre_imagen_pequena,
+					    "Color"=>"#".$this->generateRandomStringColor(6),
+					    "Web"=> $evento[6],
+					    "Fecha_creacion"=> strtotime(date('Y-m-d')),
+					    "Activo"=>'2'
 					));
 
-					$statement = $link->prepare("INSERT INTO ges_web(web,contenidos_id) VALUES(:web,:contenidos_id)");
+					$evento_id = $link->lastInsertId();
+
+					$statement = $link->prepare("INSERT INTO eventos_fechas(Id_evento,Fecha) VALUES(:evento_id,:fecha)");
 
 					$statement->execute(array(
-					    "web" =>$items['web'],
-					    "contenidos_id" => $contenido_id
+					    "evento_id" => $evento_id,
+					    "fecha" => $evento[2],
 					));
 
-
-					//Obtengo el municipio id a partir del cp
-					$municipio_id="";
-					$statement_exist = $link->prepare("select id from localidades where postal =:cp");
-					$statement_exist->execute(array(':cp' => $items['cp']));
-					$row = $statement_exist->fetch(); // Use fetchAll() if you want all results, or just iterate over the statement, since it implements Iterator
-					if($row){
-						foreach ($row as $key => $r) {
-							$municipio_id=$r;break;
-						}
-					}
-
-					$statement = $link->prepare("INSERT INTO ges_fichas(telefono,fax,email,municipio_id,contenidos_id,direccion,tipos_ficha_id) VALUES(:telefono,:fax,:email,:municipio_id,:contenidos_id,:direccion,:tipos_ficha_id)");
-
-					$statement->execute(array(
-					    "telefono" =>$items['telefono'],
-					    "fax" => $items['fax'],
-					    "email" => $items['email'],
-					    "municipio_id" => $municipio_id,
-					    "contenidos_id" => $contenido_id,
-					    "direccion" => $items['direccion'],
-					    "tipos_ficha_id" => "33"
-					));
-
-					$fichas_id=$link->lastInsertId();
-
-
-					for ($j=1; $j < 9; $j++) {
-						$statement = $link->prepare("INSERT INTO ges_texto_fichas(idiomas_id,tipo_actividad,fichas_id) VALUES(:idiomas_id,:tipo_actividad,:fichas_id)");
-
-						$statement->execute(array(
-						    "idiomas_id" =>$j,
-						    "tipo_actividad" => "",
-						    "fichas_id" => $fichas_id,
-						));
-					}
-
-					for ($k=1; $k < 9; $k++) {
-
-						$statement = $link->prepare("INSERT INTO ges_textos(titulo,texto,idiomas_id,contenidos_id,alias,titulo_secundario,texto_secundario,metaetiqueta_title,datos_estructurados) VALUES(:titulo,:texto,:idiomas_id,:contenidos_id,:alias,:titulo_secundario,:texto_secundario,:metaetiqueta_title,:datos_estructurados)");
-
-						// $estrellas="";
-						// for ($i=0; (int)$items['estrellas'] > $i ; $i++) {
-						// 	$estrellas.="*";
-						// }
-
-						$statement->execute(array(
-						    //"titulo" =>rtrim($items['tipo'])." ".rtrim($items['nombre'])." ".$estrellas,
-						    "titulo" =>rtrim($items['nombre']),
-						    "texto" => $items['servicios'],
-						    "idiomas_id" => $k,
-						    "contenidos_id" => $contenido_id,
-						    //"alias" => slug(rtrim($items['tipo'])." ".rtrim($items['nombre'])." ".$estrellas),
-						    "alias" => rtrim($items['nombre']),
-						    "titulo_secundario" => rtrim($items['nombre']),
-						    "texto_secundario" => " ",
-						    "metaetiqueta_title" => " ",
-						    "datos_estructurados" => " "
-						));
-					}
-
-
-					foreach ($items['images'] as $key => $img) {
-
-						$nombre = get_basename($img);
-
-						$nombreSinExtAux=explode(".", $nombre);
-
-						$statement = $link->prepare("INSERT INTO ges_imagenes(ruta,texto,activo,contenidos_id,tipos_imagen_id,nombre,thumb,alt) VALUES(:ruta,:texto,:activo,:contenidos_id,:tipos_imagen_id,:nombre,:thumb,:alt)");
-
-						$statement->execute(array(
-						    "ruta" =>"/images/contenidos/imagenes/".$contenido_id,
-						    "texto" => "",
-						    "activo" => 1,
-						    "contenidos_id" => $contenido_id,
-						    "tipos_imagen_id" => 6,
-						    "nombre" => $nombre,
-						    "thumb" => "/images/contenidos/imagenes/".$contenido_id."/thumb/".$nombreSinExtAux[0]."-min.jpg",
-						    "alt" => ""
-						));
-
-						subir_ftp($contenido_id,$nombre);
-					}
-
-					echo "Agregado:".$contenido_id." ||| ". rtrim($items['tipo'])." ".rtrim($items['nombre'])."<br>";
 					$link->commit();
 
 				} catch (Exception $e) {
 					echo $e->getMessage();
-				    $link->rollBack();
+				  $link->rollBack();
 				}
+
 			}
 
-
-			function subir_ftp($content_id,$img){
+			function subir_ftp($ruta_imagen,$img,$ruta_destino){
 				//exit;
 				$host = '188.93.73.11';
 				$usr = 'espectaculos';
 				$pwd = 'yg35$da/Btw29Je';
 
 				// file to move:
-				$local_file = '/home/fermin/Escritorio/htdocs/crawlers/rioja/imagenes/'.$img;
-				$ftp_path = '/httpdocs/nueva_central/images/contenidos/imagenes/'.$content_id.'/'.$img;
+				// $local_file = '/home/fermin/Escritorio/htdocs/crawlers/rioja/imagenes/'.$img;
+				// $ftp_path = '/httpdocs/nueva_central/images/contenidos/imagenes/'.$content_id.'/'.$img;
+
+				$local_file = $ruta_imagen . "/" . $img;
+				$ftp_path = $ruta_destino . "/" .$img;
 
 				// connect to FTP server (port 21)
 				$conn_id = ftp_connect($host, 21) or die ("Cannot connect to host");
@@ -848,21 +839,71 @@
 				// turn on passive mode transfers (some servers need this)
 				// ftp_pasv ($conn_id, true);
 
-				//Crear folder:
-				if (!ftp_chdir($conn_id, "/httpdocs/nueva_central/images/contenidos/imagenes/".$content_id)) {
-					ftp_mkdir($conn_id,"/httpdocs/nueva_central/images/contenidos/imagenes/".$content_id);
-				}else{
-					echo "ya existe";
-				}
+				// //Crear folder:
+				// if (!ftp_chdir($conn_id, "/httpdocs/nueva_central/images/contenidos/imagenes/".$content_id)) {
+				// 	ftp_mkdir($conn_id,"/httpdocs/nueva_central/images/contenidos/imagenes/".$content_id);
+				// }else{
+				// 	echo "ya existe";
+				// }
 
 				// perform file upload
 				$upload = ftp_put($conn_id, $ftp_path, $local_file, FTP_ASCII);
-
+				if($upload){
+					// echo "subido";
+					unlink($local_file);
+				}else{
+					echo "No subido";
+				}
 				// check upload status:
-				print (!$upload) ? 'Cannot upload' : 'Upload complete';
-				print "\n";
+				// print (!$upload) ? 'Cannot upload' : 'Upload complete';
+				// print "\n";
 			}
 
+			function merge($filename_x, $filename_y, $filename_result,$posicion) {
+				// Get dimensions for specified images
+				list($width_x, $height_x) = getimagesize($filename_x);
+				list($width_y, $height_y) = getimagesize($filename_y);
+				// Create new image with desired dimensions
+				//$image = imagecreatetruecolor($width_x + $width_y, $height_x);
+				$image = imagecreatetruecolor($width_x, $height_x);
+				// Load images and then copy to destination image
+				$image_x = imagecreatefromjpeg($filename_x);
+				$image_y = imagecreatefromjpeg($filename_y);
+				imagecopy($image, $image_x, 0, 0, 0, 0, $width_x, $height_x);
+				imagecopy($image, $image_y, $width_x-$posicion, 0, 0, 0, $width_y, $height_y);
+				// Save the resulting image to disk (as JPEG)
+				imagejpeg($image, $filename_result);
+				// Clean up
+				imagedestroy($image);
+				imagedestroy($image_x);
+				imagedestroy($image_y);
+			}
+
+			function generateRandomString($length = 10) {
+			  return substr(str_shuffle("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"), 0, $length);
+			}
+
+			function generateRandomStringColor($length = 6) {
+			  return substr(str_shuffle("0123456789abcdef"), 0, $length);
+			}
+
+			function slug($string) {
+		    //Primero definimos nuestro array de caracteres especiales que queremos limpiar en nuestra cadena
+		    $characters = array(
+		        "Á" => "A", "Ç" => "c", "É" => "e", "Í" => "i", "Ñ" => "n", "Ó" => "o", "Ú" => "u",
+		        "á" => "a", "ç" => "c", "é" => "e", "í" => "i", "ñ" => "n", "ó" => "o", "ú" => "u",
+		        "à" => "a", "è" => "e", "ì" => "i", "ò" => "o", "ù" => "u"
+		     );
+		     $string = strtr($string, $characters); //Realiza la conversión de los caracteres
+		     $string = strtolower(trim($string)); //Convierte todo a minúsculas
+		     $string = preg_replace("/[^a-z0-9-]/", "-", $string);
+		     $string = preg_replace("/-+/", "-", $string); //Reemplaza los espacios por guiones medios -
+		     //Si el último carácter de la cadena es un guión medio -, lo elimina.
+		     if(substr($string, strlen($string) - 1, strlen($string)) === "-") {
+		       $string = substr($string, 0, strlen($string) - 1);
+		     }
+		     return $string;
+			}
 		/////////////////////////////////////////////////////
 
 
