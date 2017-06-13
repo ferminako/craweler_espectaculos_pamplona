@@ -391,17 +391,24 @@
 					$aux_precio = str_replace('Anfiteatro', 'Anfiteatro ', $aux_precio);
 					$precio .= utf8_decode($aux_precio) . "<br>";
 				}
-				$urlCompraEntradas = pq($divInfoEvento)->find('p.compra')->find('a')->attr('href');
-				$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
 
 				$texto = "";
 				foreach ($divEvento->find('div:first')->find('p') as $key => $p) {
 				 	$texto .= utf8_decode($p->textContent)."<br>";
 				}
 
-				$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
-									<p><span style="font-family: Arial, sans-serif; font-size: 11px;">' . $precio . '</span></p>';
-				$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
+				if( $precio != "" ){
+					$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
+										<p><span style="font-family: Arial, sans-serif; font-size: 11px;">' . $precio . '</span></p>';
+				}
+
+				$urlCompraEntradas = pq($divInfoEvento)->find('p.compra')->find('a')->attr('href');
+				if( $urlCompraEntradas != "" ){
+					$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
+					$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
+				}
+
+
 
 				//echo '<pre>';var_dump(array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen));echo '</pre>';
 				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
@@ -516,6 +523,11 @@
 					}
 				}
 
+				$texto = "";
+				foreach ($divEvento->find('p') as $key => $p) {
+				 	$texto .= utf8_decode($p->textContent)."<br>";
+				}
+
 				$precio = "";
 				foreach (pq($divEvento)->find('p') as $key => $item) {
 					if( strpos($item->textContent, 'Entrada general') !== false ){
@@ -524,17 +536,17 @@
 					}
 				}
 
-				$urlCompraEntradas = pq($divEvento)->find('div.boton-compra-class')->find('a')->attr('href');
-				$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
-
-				$texto = "";
-				foreach ($divEvento->find('p') as $key => $p) {
-				 	$texto .= utf8_decode($p->textContent)."<br>";
+				if( $precio != "" ){
+					$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
+									<p><span style="font-family: Arial, sans-serif; font-size: 11px;">' . $precio . '</span></p>';
 				}
 
-				$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
-									<p><span style="font-family: Arial, sans-serif; font-size: 11px;">' . $precio . '</span></p>';
-				$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
+				$urlCompraEntradas = pq($divEvento)->find('div.boton-compra-class')->find('a')->attr('href');
+				if( $urlCompraEntradas != "" ){
+					$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
+					$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
+				}
+
 				//echo '<pre>';var_dump(array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen));echo '</pre>';exit;
 				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 			}
@@ -641,8 +653,7 @@
 				}
 
 				$lugar = utf8_decode("Zentral, " . trim(rtrim(strip_tags(pq($divEvento)->find('div.ubicacion')))));
-				$urlCompraEntradas = pq($divEvento)->find('div.event-tickets')->find('a')->attr('href');
-				$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
+
 
 				$divInfoPrecioEvento = pq('div.info_derecha_evento');
 
@@ -654,9 +665,18 @@
 					}
 				}
 
-				$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
+				if( $precio != "" ){
+					$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
 									<p><span style="font-family: Arial, sans-serif; font-size: 11px;">' . $precio . '</span></p>';
-				$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
+				}
+
+				$urlCompraEntradas = pq($divEvento)->find('div.event-tickets')->find('a')->attr('href');
+
+				if( $urlCompraEntradas != "" ){
+					$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
+					$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
+				}
+
 				// echo '<pre>';var_dump(array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen));echo '</pre>';exit;
 				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 			}

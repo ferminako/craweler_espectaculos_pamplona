@@ -4,7 +4,6 @@
 	ini_set('display_errors', 1);
 	ini_set('display_startup_errors', 1);
 	error_reporting(E_ALL);
-	// date_default_timezone_set('Europe');
 
 	include 'phpQuery.php';
 	include 'funciones.php';
@@ -21,9 +20,6 @@
 	$ruta_destino_ftp_imagen_principal = "/httpdocs/images/eventos/principal/";
 	$ruta_destino_ftp_imagen_peque = "/httpdocs/images/eventos/principal/thumbs/";
 
-	//$ruta_destino_ftp_imagen_principal = "/var/www/vhosts/espectaculospamplona.com/httpdocs/images/eventos/principal/";
-	// $ruta_destino_ftp_imagen_pequena = "/var/www/vhosts/espectaculospamplona.com/httpdocs/images/eventos/principal/thumbs/";
-
 	try {
 
 		$tiempo_inicio=time();
@@ -37,27 +33,25 @@
 		$link = $funciones->connect_db();
 
 		// 1º Baluarte
-		// $eventosBaluarte = $funciones->traerEventosBaluarte();
-		// foreach ($eventosBaluarte as $key => $evento) {
-		// 	if(!$funciones->existeEvento($link,$evento)){
-		// 		//Si no está ya incluido
-		// 		$nombre_imagen = $funciones->generateRandomString() . $funciones->slug($evento[0]);
-		// 		if(strpos($evento[10], '.jpg') !== false || strpos($evento[10], '.png') !== false ){
-		// 			$tipoImagen =	$funciones->guardarImagenBaluarte($evento[10],$ruta_destino,$nombre_imagen);
-		// 			//Imagen Grande
-		// 			$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Baluarte586x196'.$tipoImagen,$ruta_destino_ftp_imagen_principal);
-		// 			//Imagen Pequeña
-		// 			$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Baluarte80x80'.$tipoImagen,$ruta_destino_ftp_imagen_peque);
-		// 			//Guardar evento
-		// 			$funciones->insertarEvento($link,$evento,$nombre_imagen.'Baluarte586x196'.$tipoImagen,$nombre_imagen.'Baluarte80x80'.$tipoImagen);
-		// 		}else{
-		// 			$evento[10] = "";
-		// 			$funciones->insertarEvento($link,$evento,'586x196_no_foto.png','80x80_no_foto.png');
-		// 		}
-		// 	}
-		// }
-
-
+		$eventosBaluarte = $funciones->traerEventosBaluarte();
+		foreach ($eventosBaluarte as $key => $evento) {
+			if(!$funciones->existeEvento($link,$evento)){
+				//Si no está ya incluido
+				$nombre_imagen = $funciones->generateRandomString() . $funciones->slug($evento[0]);
+				if(strpos($evento[10], '.jpg') !== false || strpos($evento[10], '.png') !== false ){
+					$tipoImagen =	$funciones->guardarImagenBaluarte($evento[10],$ruta_destino,$nombre_imagen);
+					//Imagen Grande
+					$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Baluarte586x196'.$tipoImagen,$ruta_destino_ftp_imagen_principal);
+					//Imagen Pequeña
+					$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Baluarte80x80'.$tipoImagen,$ruta_destino_ftp_imagen_peque);
+					//Guardar evento
+					$funciones->insertarEvento($link,$evento,$nombre_imagen.'Baluarte586x196'.$tipoImagen,$nombre_imagen.'Baluarte80x80'.$tipoImagen);
+				}else{
+					$evento[10] = "";
+					$funciones->insertarEvento($link,$evento,'586x196_no_foto.png','80x80_no_foto.png');
+				}
+			}
+		}
 
 		// 2º Barañain
 		$eventosBaranain = $funciones->traerEventosBaranain();
@@ -81,71 +75,67 @@
 		}
 
 		//3º Gayarre
-		// $eventosGayarre = $funciones->traerEventosGayarre();
-		// foreach ($eventosGayarre as $key => $evento) {
-		// 	if(!$funciones->existeEvento($link,$evento)){
-		// 		//Si no está ya incluido
-		// 		$nombre_imagen = $funciones->generateRandomString() . $funciones->slug($evento[0]);
-		// 		// if(strpos($evento[10], '.jpg') !== false || strpos($evento[10], '.png') !== false ){
-		// 		// 	$tipoImagen =	$funciones->guardarImagenGayarre($evento[10],$ruta_destino,$nombre_imagen);
-		// 		// 	//Imagen Grande
-		// 		// 	//$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Gayarre586x196'.$tipoImagen,$ruta_destino_ftp_imagen_principal);
-		// 		// 	//Imagen Pequeña
-		// 		// 	//$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Gayarre80x80'.$tipoImagen,$ruta_destino_ftp_imagen_peque);
-		// 		// 	//Guardar evento
-		// 		// 	$funciones->insertarEvento($link,$evento,$nombre_imagen.'Gayarre586x196'.$tipoImagen,$nombre_imagen.'Gayarre80x80'.$tipoImagen);
-		// 		// }else{
-		// 			$evento[10] = "";
-		// 			$funciones->insertarEvento($link,$evento,'586x196_no_foto.png','80x80_no_foto.png');
-		// 		// }
-		// 	}
-		// }
+		$eventosGayarre = $funciones->traerEventosGayarre();
+		foreach ($eventosGayarre as $key => $evento) {
+			if(!$funciones->existeEvento($link,$evento)){
+				//Si no está ya incluido
+				$nombre_imagen = $funciones->generateRandomString() . $funciones->slug($evento[0]);
+				// if(strpos($evento[10], '.jpg') !== false || strpos($evento[10], '.png') !== false ){
+				// 	$tipoImagen =	$funciones->guardarImagenGayarre($evento[10],$ruta_destino,$nombre_imagen);
+				// 	//Imagen Grande
+				// 	//$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Gayarre586x196'.$tipoImagen,$ruta_destino_ftp_imagen_principal);
+				// 	//Imagen Pequeña
+				// 	//$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Gayarre80x80'.$tipoImagen,$ruta_destino_ftp_imagen_peque);
+				// 	//Guardar evento
+				// 	$funciones->insertarEvento($link,$evento,$nombre_imagen.'Gayarre586x196'.$tipoImagen,$nombre_imagen.'Gayarre80x80'.$tipoImagen);
+				// }else{
+					$evento[10] = "";
+					$funciones->insertarEvento($link,$evento,'586x196_no_foto.png','80x80_no_foto.png');
+				// }
+			}
+		}
 
 		//4º Museo
-		// $eventosMuseo = $funciones->traerEventosMuseo();
-		// foreach ($eventosMuseo as $key => $evento) {
-		// 	if(!$funciones->existeEvento($link,$evento)){
-		// 		//Si no está ya incluido
-		// 		$nombre_imagen = $funciones->generateRandomString() . $funciones->slug($evento[0]);
-		// 		if(strpos($evento[10], '.jpg') !== false || strpos($evento[10], '.png') !== false ){
-		// 			$tipoImagen =	$funciones->guardarImagenMuseo($evento[10],$ruta_destino,$nombre_imagen);
-		// 			//Imagen Grande
-		// 			$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Museo586x196'.$tipoImagen,$ruta_destino_ftp_imagen_principal);
-		// 			//Imagen Pequeña
-		// 			$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Museo80x80'.$tipoImagen,$ruta_destino_ftp_imagen_peque);
-		// 			//Guardar evento
-		// 			$funciones->insertarEvento($link,$evento,$nombre_imagen.'Museo586x196'.$tipoImagen,$nombre_imagen.'Museo80x80'.$tipoImagen);
-		// 		}else{
-		// 			$evento[10] = "";
-		// 			$funciones->insertarEvento($link,$evento,'586x196_no_foto.png','80x80_no_foto.png');
-		// 		}
-		// 	}
-		// }
-
-
-
+		$eventosMuseo = $funciones->traerEventosMuseo();
+		foreach ($eventosMuseo as $key => $evento) {
+			if(!$funciones->existeEvento($link,$evento)){
+				//Si no está ya incluido
+				$nombre_imagen = $funciones->generateRandomString() . $funciones->slug($evento[0]);
+				if(strpos($evento[10], '.jpg') !== false || strpos($evento[10], '.png') !== false ){
+					$tipoImagen =	$funciones->guardarImagenMuseo($evento[10],$ruta_destino,$nombre_imagen);
+					//Imagen Grande
+					$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Museo586x196'.$tipoImagen,$ruta_destino_ftp_imagen_principal);
+					//Imagen Pequeña
+					$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Museo80x80'.$tipoImagen,$ruta_destino_ftp_imagen_peque);
+					//Guardar evento
+					$funciones->insertarEvento($link,$evento,$nombre_imagen.'Museo586x196'.$tipoImagen,$nombre_imagen.'Museo80x80'.$tipoImagen);
+				}else{
+					$evento[10] = "";
+					$funciones->insertarEvento($link,$evento,'586x196_no_foto.png','80x80_no_foto.png');
+				}
+			}
+		}
 
 		//5º Zentral
-		// $eventosZentral = $funciones->traerEventosZentral();
-		// foreach ($eventosZentral as $key => $evento) {
-		// 	if(!$funciones->existeEvento($link,$evento)){
-		// 		//Si no está ya incluido
-		// 		$nombre_imagen = $funciones->generateRandomString() . $funciones->slug($evento[0]);
-		// 		if(strpos($evento[10], '.jpg') !== false || strpos($evento[10], '.png') !== false ){
-		// 			$tipoImagen =	$funciones->guardarImagenZentral($evento[10],$ruta_destino,$nombre_imagen);
-		// 			//Imagen Grande
-		// 			$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Zentral586x196'.$tipoImagen,$ruta_destino_ftp_imagen_principal);
-		// 			//Imagen Pequeña
-		// 			$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Zentral80x80'.$tipoImagen,$ruta_destino_ftp_imagen_peque);
-		// 			//Guardar evento
-		// 			$funciones->insertarEvento($link,$evento,$nombre_imagen.'Zentral586x196'.$tipoImagen,$nombre_imagen.'Zentral80x80'.$tipoImagen);
-		// 		}else{
-		// 			$evento[10] = "";
-		// 			$funciones->insertarEvento($link,$evento,'586x196_no_foto.png','80x80_no_foto.png');
-		// 		}
-		// 	}
-	 //  }
-
+		$eventosZentral = $funciones->traerEventosZentral();
+		foreach ($eventosZentral as $key => $evento) {
+			if(!$funciones->existeEvento($link,$evento)){
+				//Si no está ya incluido
+				$nombre_imagen = $funciones->generateRandomString() . $funciones->slug($evento[0]);
+				if(strpos($evento[10], '.jpg') !== false || strpos($evento[10], '.png') !== false ){
+					$tipoImagen =	$funciones->guardarImagenZentral($evento[10],$ruta_destino,$nombre_imagen);
+					//Imagen Grande
+					$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Zentral586x196'.$tipoImagen,$ruta_destino_ftp_imagen_principal);
+					//Imagen Pequeña
+					$funciones->subir_ftp($ruta_destino,$nombre_imagen.'Zentral80x80'.$tipoImagen,$ruta_destino_ftp_imagen_peque);
+					//Guardar evento
+					$funciones->insertarEvento($link,$evento,$nombre_imagen.'Zentral586x196'.$tipoImagen,$nombre_imagen.'Zentral80x80'.$tipoImagen);
+				}else{
+					$evento[10] = "";
+					$funciones->insertarEvento($link,$evento,'586x196_no_foto.png','80x80_no_foto.png');
+				}
+			}
+	  }
 
 		$tiempo_fin=time();
 		echo $funciones->time_lapsed($tiempo_inicio,$tiempo_fin)." minutos.";
