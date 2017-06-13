@@ -15,10 +15,11 @@
 				$eventosBaluarte = array();
 				/*Preparo las urls para las fechas de 3 meses vista*/
 				$mesActual = date('Y-n');
-				for ($i=0; $i < 3; $i++) {
+				for ($i=0; $i < 4; $i++) {
 					$urlsBaluarte = array();
 					$auxUrl = $this->urlBaluarte."?tipo=&fecha=".$mesActual;
 					$urlsBaluarte = $this->obtenerLinksBaluarte($this->traerHtml($auxUrl));
+					// $urlsBaluarte = array("http://baluarte.com/cas/espectaculos-y-conciertos/calendario-de-espectaculos/orquesta-sinfonica-de-navarra-259/fecha=2017-6");
 					foreach ($urlsBaluarte as $key => $url) {
 						$eventosBaluarte[] = $this->parseHtmlBaluarte($url);
 					}
@@ -59,11 +60,11 @@
 
 				$divNoticia = pq($divEvento)->find('div#ficha_noticia');
 
-				$titulo = strip_tags(utf8_encode(pq($divNoticia)->find('h1')));
+				$titulo = strip_tags(pq($divNoticia)->find('h1'));
 
-				$tipo = $this->get_string_between(rtrim(trim(utf8_encode(pq($divNoticia)->find('div.definicion')))),'<div class="definicion">','</div>');
+				$tipo = $this->get_string_between(rtrim(trim(pq($divNoticia)->find('div.definicion'))),'<div class="definicion">','</div>');
 
-				$fechaHora = utf8_encode(pq($divNoticia)->find('div.fecha_espectaculo'));
+				$fechaHora = pq($divNoticia)->find('div.fecha_espectaculo');
 				$auxFechaTexto = explode(',',$this->get_string_between($fechaHora,"<strong>","</strong>"));
 				$fechaTexto = $auxFechaTexto[0];
 				$fechaUnix = $this->obtenerUnixTimeBaluarte($fechaTexto);
@@ -89,8 +90,8 @@
 						$texto .= $divContenido->textContent."<br>";
 					}
 				}
-
-				$precio = rtrim(trim(strip_tags(utf8_encode(pq($divEvento)->find('span.precios')))))." €";
+				$texto = utf8_decode($texto);
+				$precio = utf8_decode(rtrim(trim(strip_tags(pq($divEvento)->find('span.precios'))))) . " euros.";
 				$precio = str_replace('?', '', $precio);
 
 				$urlCompraEntradas = $this->get_string_between(pq($divEvento)->find('div.compraentrada')->find('a')->attr('onclick'),"compraEntradas('","')");
@@ -156,6 +157,7 @@
 				$eventos = array();
 				$auxUrl = "http://www.auditoriobaranain.com/programacion/";
 				$urls = $this->obtenerLinksBaranain($this->traerHtml($auxUrl));
+
 				foreach ($urls as $key => $url) {
 					$eventos[] = $this->parseHtmlBaranain($url);
 				}
@@ -176,6 +178,7 @@
 
 			function parseHtmlBaranain($url){
 				// echo $url."<br>";
+				// $url = "http://www.auditoriobaranain.com/programacion/el-cascanueces-russian-classical-ballet/";
 				$urlWeb = bitly::acortarUrl($url);
 				$html = $this->traerHtml($url);
 				$doc = phpQuery::newDocument($html);
@@ -183,22 +186,39 @@
 				$divTitulo = pq('#Titulo');
 
 				$imagen = pq($divEvento)->find('div.vc_single_image-wrapper')->find('img')->attr('src');
-				$titulo = strip_tags(pq($divTitulo)->find('h1'));
-				$tipo = strip_tags(pq($divTitulo)->find('h5'));
+
+				// echo $imagen;exit;
+				$titulo = utf8_decode(strip_tags(pq($divTitulo)->find('h1')));
+				$tipo = utf8_decode(strip_tags(pq($divTitulo)->find('h5')));
 
 				$aux =  pq($divEvento)->find('p:first');
 				$auxFecha = $this->get_string_between($aux,'<p>','<br>');
 				$auxFecha = explode('</span>', $aux);
 				$auxFecha = explode(',', $auxFecha[1]);
 				$fechaTexto = trim(rtrim($auxFecha[0]));
-				$fechaUnix = $this->obtenerUnixTimeBaluarte($fechaTexto);
+
+				if( strpos($fechaTexto, "\xC2\xA0") !== false){
+					$fechaTexto = trim($fechaTexto, "\xC2\xA0");
+					$fechaTexto = str_replace("\xC2\xA0"," ", $fechaTexto);
+				}
+
+				if( strpos($fechaTexto, '-') !== false && strpos($fechaTexto, '.') !== false ){
+					//más de una fecha, cojo la primera y pista
+					$fechaTextoAux = explode('-', $fechaTexto);
+					$fechaTextoAux0 = explode(' ', $fechaTextoAux[0]);
+					$fechaTexto = $fechaTextoAux0[1] ." ". strtolower($fechaTextoAux0[0]);
+				}
+
+				$fechaTexto = utf8_decode($fechaTexto);
+
+				$fechaUnix = $this->obtenerUnixTimeBaranain($fechaTexto);
 				$hora = rtrim(trim($auxFecha = $this->get_string_between($aux,'<br><span class="text-uppercase"><strong>Horario:</strong></span>','<br>')));
-				$lugar ="Auditorio Barañain," . rtrim(trim($this->get_string_between($aux,'<strong>Sala:</strong></span>','</p>')));
+				$lugar = utf8_decode("Auditorio Barañain," . rtrim(trim($this->get_string_between($aux,'<strong>Sala:</strong></span>','</p>'))));
 
 				$aux =  pq($divEvento)->find('ul.disc-list');
 				$precio = "";
 				foreach ($aux->find('li') as $key => $p) {
-					$precio .= $p->textContent."<br>";
+					$precio .= utf8_decode($p->textContent)."<br>";
 				}
 
 				$urlCompraEntradas =  pq($divEvento)->find('div.vc_btn3-container')->find('a.vc_general')->attr('href');
@@ -206,18 +226,27 @@
 
 				$texto = "";
 				foreach(pq($divEvento)->find('div.vc_tta-panel-body')->find('div.wpb_text_column')->find('div.wpb_wrapper')->find('p') as $contenido) {
-					$texto .= $contenido->textContent."<br>";
+					$texto .= utf8_decode($contenido->textContent)."<br>";
 				}
+
+				$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
+									<p><span style="font-family: Arial, sans-serif; font-size: 11px;">' . $precio . '</span></p>';
+				$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
+
 				// echo '<pre>';var_dump(array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen));echo '</pre>';exit;
 				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 			}
 
 			function obtenerUnixTimeBaranain($fechaTexto){
-				$fechaSinDiaSemana = explode(",", $fechaTexto);
-				$auxFecha=explode(" ",$fechaSinDiaSemana[0]);
+				// echo $fechaTexto."<br>";exit;
+				// $fechaSinDiaSemana = explode(",", $fechaTexto);
+				// $auxFecha=explode(" ",$fechaSinDiaSemana[0]);
+				// echo '<pre>';var_dump(trim($auxFecha));echo '</pre>';exit;
+				$auxFecha = explode(" ", $fechaTexto);
 				$dia = $auxFecha[0];
 				$mes = strtolower($auxFecha[1]);
 				$mesNumero = 0;
+
 				switch ($mes) {
 					case 'enero':
 						$mesNumero = 1;break;
@@ -263,7 +292,7 @@
 				/*Preparo las urls para las fechas de 3 meses vista*/
 				$mesActual = date('n');
 				$anoActual = date('Y');
-				for ($i=0; $i < 3; $i++) {
+				for ($i=0; $i < 4; $i++) {
 					$urlsGayarre = array();
 					$auxUrl = $this->urlGayarre."?mesAgenda=".$mesActual."&annoAgenda=".$anoActual;
 					$urlsGayarre = $this->obtenerLinksGayarre($this->traerHtml($auxUrl));
@@ -302,33 +331,36 @@
 				$divEvento = pq('#op1');
 				$divInfoEvento = pq('.infoEvento');
 
-				$imagen = "http://teatrogayarre.com/" . pq($divPreEvento)->find('img')->attr('src');
-				$titulo = strip_tags(pq($divEvento)->find('h2'));
+				$imagen = "http://teatrogayarre.com" . pq($divPreEvento)->find('img')->attr('src');
+
+				$titulo = utf8_decode(strip_tags(pq($divEvento)->find('h2')));
 				$tipo = pq($divInfoEvento)->find('div#zonaFechas')->find('h3:first');
-				$tipo = $this->get_string_between($tipo, '</span>', '</h3>');
+				$tipo = utf8_decode($this->get_string_between($tipo, '</span>', '</h3>'));
 				$aux = pq($divInfoEvento)->find('div.fechas')->find('div.fecha');
 				$aux = explode("-", $aux);
 				$fechaTexto = rtrim(trim(strtolower(str_replace('de', '', $aux[1]))));
 				$fechaTexto = str_replace('  ', ' ', $fechaTexto);
+				$fechaTexto = utf8_decode(strip_tags($fechaTexto));
 				$fechaUnix = $this->obtenerUnixTimeGayarre($fechaTexto);
-				$hora = rtrim(trim(strip_tags(pq($divInfoEvento)->find('div.fechas')->find('div.hora'))));
-				$lugar ="Teatro Gayarre, Sala Principal";
+				$hora = utf8_decode(rtrim(trim(strip_tags(pq($divInfoEvento)->find('div.fechas')->find('div.hora')))));
+				$lugar = utf8_decode("Teatro Gayarre, Sala Principal");
 				$tablaPrecios = pq($divInfoEvento)->find('table.precio');
 				$precio = "";
 				foreach ($tablaPrecios->find('tr') as $key => $p) {
 					$aux_precio = str_replace('Sala', 'Sala ', $p->textContent);
 					$aux_precio = str_replace('Palco', 'Palco ', $aux_precio);
 					$aux_precio = str_replace('Anfiteatro', 'Anfiteatro ', $aux_precio);
-					$precio .= $aux_precio . "<br>";
+					$precio .= utf8_decode($aux_precio) . "<br>";
 				}
 				$urlCompraEntradas = pq($divInfoEvento)->find('p.compra')->find('a')->attr('href');
 				$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
 
 				$texto = "";
 				foreach ($divEvento->find('div:first')->find('p') as $key => $p) {
-				 	$texto .= $p->textContent."<br>";
+				 	$texto .= utf8_decode($p->textContent)."<br>";
 				}
-				// echo '<pre>';var_dump(array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen));echo '</pre>';exit;
+
+				//echo '<pre>';var_dump(array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen));echo '</pre>';
 				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 			}
 
@@ -336,7 +368,7 @@
 
 				$aux = explode(" ", $fechaTexto);
 				$dia = $aux[0];
-				$mes = $aux[2];
+				$mes = $aux[1];
 
 				$mesNumero = 0;
 
@@ -418,8 +450,8 @@
 				$doc = phpQuery::newDocument($html);
 				$divEvento = pq('div.detail');
 				$imagen = "http://museo.unav.edu" . pq($divEvento)->find('img:first')->attr('src');
-				$titulo = trim(rtrim(strip_tags(pq($divEvento)->find('h4:first'))));
-				$tipo = "Artístico";
+				$titulo = utf8_decode(trim(rtrim(strip_tags(pq($divEvento)->find('h4:first')))));
+				$tipo = utf8_decode("Artístico");
 				$aux = pq($divEvento)->find('div.uppercase')->find('a:first');
 				$aux = $this->get_string_between($aux, '">', '</a>');
 				$auxFechaHora = explode('de', $aux);
@@ -429,22 +461,22 @@
 				$auxAnoHora = $auxFechaHora[2];
 
 				$auxFechaTexto = explode(',', $auxFechaDia);
-				$fechaTexto = trim(rtrim($auxFechaTexto[1]. $auxFechaMes));
+				$fechaTexto = utf8_decode(trim(rtrim($auxFechaTexto[1]. $auxFechaMes)));
 				$fechaUnix = $this->obtenerUnixTimeMuseo($fechaTexto);
 				$fechaTexto = str_replace('  ', ' ', $fechaTexto);
 				$auxHora = explode(', a las ', $auxFechaHora[2]);
-				$hora = $auxHora[1]."h";
+				$hora = utf8_decode($auxHora[1]);
 				$lugar = "Museo Universidad de Navarra, ";
 				foreach (pq($divEvento)->find('div.uppercase')->find('a') as $key => $item) {
 					if($key == 1){
-						$lugar .= $item->textContent;
+						$lugar .= utf8_decode($item->textContent);
 					}
 				}
 
 				$precio = "";
 				foreach (pq($divEvento)->find('p') as $key => $item) {
 					if( strpos($item->textContent, 'Entrada general') !== false ){
-						$precio = rtrim(trim($this->get_string_between($item->textContent, 'Entrada general: ', 'A los precios de')));
+						$precio = utf8_decode(rtrim(trim($this->get_string_between($item->textContent, 'Entrada general: ', 'A los precios de'))));
 					}
 				}
 
@@ -453,9 +485,9 @@
 
 				$texto = "";
 				foreach ($divEvento->find('p') as $key => $p) {
-				 	$texto .= $p->textContent."<br>";
+				 	$texto .= utf8_decode($p->textContent)."<br>";
 				}
-				// echo '<pre>';var_dump(array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen));echo '</pre>';exit;
+				//echo '<pre>';var_dump(array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen));echo '</pre>';exit;
 				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 			}
 
@@ -547,17 +579,18 @@
 				$divEvento = pq('div.single-page-col');
 
 				$auxFecha = explode(',',pq($divEvento)->find('div.fecha_evento'));
-				$fechaTexto = strtolower(rtrim(trim($auxFecha[1])));
+				$fechaTexto = utf8_decode(strip_tags(strtolower(rtrim(trim($auxFecha[1])))));
+
 				$fechaUnix = $this->obtenerUnixTimeZentral($fechaTexto);
-				$hora = trim(rtrim(strip_tags(pq($divEvento)->find('div.hora'))));
+				$hora = utf8_decode(trim(rtrim(strip_tags(pq($divEvento)->find('div.hora')))));
 				$imagen = pq($divEvento)->find('div.event-cover-max')->find('img')->attr('src');
-				$tipo = trim(rtrim(strip_tags(pq($divEvento)->find('div.tipo'))));
-				$titulo = trim(rtrim(strip_tags(pq($divEvento)->find('h1.titulo_evento'))));
+				$tipo = utf8_decode(trim(rtrim(strip_tags(pq($divEvento)->find('div.tipo')))));
+				$titulo = utf8_decode(trim(rtrim(strip_tags(pq($divEvento)->find('h1.titulo_evento')))));
 				$texto = "";
 				foreach (pq($divEvento)->find('div.texto_evento_descripcion')->find('p') as $key => $item) {
-					$texto .= $item->textContent;
+					$texto .= utf8_decode($item->textContent);
 				}
-				$lugar ="Zentral, " . trim(rtrim(strip_tags(pq($divEvento)->find('div.ubicacion'))));
+				$lugar = utf8_decode("Zentral, " . trim(rtrim(strip_tags(pq($divEvento)->find('div.ubicacion')))));
 				$urlCompraEntradas = pq($divEvento)->find('div.event-tickets')->find('a')->attr('href');
 				$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
 
@@ -566,7 +599,7 @@
 				$precio = "";
 				foreach (pq($divInfoPrecioEvento)->find('h5') as $key => $item) {
 					if($key == 1){
-						$precio = $item->textContent;
+						$precio = utf8_decode($item->textContent);
 					}
 
 				}
@@ -626,8 +659,8 @@
 				}else{
 					$ano = date('Y');
 				}
-
-				return strtotime( $ano . "-" . $mesNumero . "-" . $dia );
+				return mktime(0,0,0,$mesNumero,$dia,$ano);
+				//return strtotime( $ano . "-" . $mesNumero . "-" . $dia );
 			}
 		/////////////////////////////////////////////////////
 
@@ -687,19 +720,36 @@
 			//$ruta_imagen = "/home/fermin/Escritorio/htdocs/espectaculos_crawler/imagenes_eventos_origen/baranain.jpg";
 
 			function guardarImagenGayarre($url_imagen,$ruta_destino,$nombre_imagen){
-				$image = new ImageResize($url_imagen);
+				echo $url_imagen. "<br>" . $ruta_destino . "<br>" .$nombre_imagen."<br>";
+				$tipoImagen = '.jpg';
+				if( strpos($url_imagen, ".png") !== false){
+					$tipoImagen = '.png';
+				}
+				echo "a<br>";
+				$image = new ImageResize($url_imagen);http://teatrogayarre.com//docs/ImagenesEditor/2017/01/grupo-apaisado_v1_730x400.jpg
+				echo "b<br>";
 				$image->crop(586,196);
-				$image->save($ruta_destino.$ruta_destino.$nombre_imagen.'Gayarre586x196.jpg');
-				$image->crop(80,80);
-				$image->save($ruta_destino.$ruta_destino.$nombre_imagen.'Gayarre80x80.jpg');
+				echo "c<br>";
+				$image->save($ruta_destino.$nombre_imagen.'Gayarre586x196'.$tipoImagen);
+				echo "d<br>";
+				$image->crop(80,80);echo "e<br>";
+				$image->save($ruta_destino.$nombre_imagen.'Gayarre80x80'.$tipoImagen);echo "a<br>";
+
+				return $tipoImagen;
 			}
 
 			function guardarImagenMuseo($url_imagen,$ruta_destino,$nombre_imagen){
+				$tipoImagen = '.jpg';
+				if( strpos($url_imagen, ".png") !== false){
+					$tipoImagen = '.png';
+				}
+
 				$image = new ImageResize($url_imagen);
 				$image->crop(586,196);
-				$image->save($ruta_destino.$ruta_destino.$nombre_imagen.'Museo586x196.jpg');
+				$image->save($ruta_destino.$nombre_imagen.'Museo586x196'.$tipoImagen);
 				$image->crop(80,80);
-				$image->save($ruta_destino.$ruta_destino.$nombre_imagen.'Museo80x80.jpg');
+				$image->save($ruta_destino.$nombre_imagen.'Museo80x80'.$tipoImagen);
+				return $tipoImagen;
 			}
 
 			function guardarImagenBaluarte($url_imagen,$ruta_destino,$nombre_imagen){
@@ -707,44 +757,64 @@
 				// $image->resize(586, 196, $allow_enlarge = True);
 				// $image->save($ruta_destino.'Baluarte586x196.jpg');
 
+				$tipoImagen = '.jpg';
+				if( strpos($url_imagen, ".png") !== false){
+					$tipoImagen = '.png';
+				}
+
 				$image = new ImageResize($url_imagen);
 				$image->resizeToHeight(196);
-				$image->save($ruta_destino.'BaluarteProcess.jpg');
-				$this->merge($ruta_destino.'base.jpg', $ruta_destino.'BaluarteProcess.jpg', $ruta_destino.$nombre_imagen.'Baluarte586x196.jpg',400);
-				unlink( $ruta_destino.'BaluarteProcess.jpg' );
+				$image->save($ruta_destino.'BaluarteProcess'.$tipoImagen);
+				$this->merge($ruta_destino.'base'.$tipoImagen, $ruta_destino.'BaluarteProcess'.$tipoImagen, $ruta_destino.$nombre_imagen.'Baluarte586x196'.$tipoImagen,400);
+				unlink( $ruta_destino.'BaluarteProcess'.$tipoImagen );
 				$image->resize(80, 80, $allow_enlarge = True);
-				$image->save($ruta_destino.$nombre_imagen.'Baluarte80x80.jpg');
+				$image->save($ruta_destino.$nombre_imagen.'Baluarte80x80'.$tipoImagen);
+				return $tipoImagen;
 			}
 
 			function guardarImagenZentral($url_imagen,$ruta_destino,$nombre_imagen){
 				// $image = new ImageResize($url_imagen);
 				// $image->resize(586, 196, $allow_enlarge = True);
 				// $image->save($ruta_destino.'Zentral586x196.jpg');
+
+				$tipoImagen = '.jpg';
+				if( strpos($url_imagen, ".png") !== false){
+					$tipoImagen = '.png';
+				}
+
 				$image = new ImageResize($url_imagen);
 				$image->resizeToHeight(196);
-				$image->save($ruta_destino.'ZentralProcess.jpg');
-				$this->merge($ruta_destino.'base.jpg', $ruta_destino.'ZentralProcess.jpg', $ruta_destino.$nombre_imagen.'Zentral586x196.jpg',400);
-				unlink( $ruta_destino.'ZentralProcess.jpg' );
+				$image->save($ruta_destino.'ZentralProcess'.$tipoImagen);
+				$this->merge($ruta_destino.'base'.$tipoImagen, $ruta_destino.'ZentralProcess'.$tipoImagen, $ruta_destino.$nombre_imagen.'Zentral586x196'.$tipoImagen,400);
+				unlink( $ruta_destino.'ZentralProcess'.$tipoImagen );
 
 				$image->resize(80, 80, $allow_enlarge = True);
-				$image->save($ruta_destino.$evento_nombre.$this->generateRandomString.'Zentral80x80.jpg');
+				$image->save($ruta_destino.$nombre_imagen.'Zentral80x80'.$tipoImagen);
+				return $tipoImagen;
 			}
 
 			function guardarImagenBaranain($url_imagen,$ruta_destino,$nombre_imagen){
 
 				// $ruta_imagen = "/home/fermin/Escritorio/htdocs/espectaculos_crawler/imagenes_eventos_origen/baranain.jpg";
+
+				$tipoImagen = '.jpg';
+				if( strpos($url_imagen, ".png") !== false){
+					$tipoImagen = '.png';
+				}
+
 				$image = new ImageResize($url_imagen);
 				$image->resizeToHeight(196);
-				$image->save($ruta_destino.'BaranainProcess.jpg');
-				$this->merge($ruta_destino.'base.jpg', $ruta_destino.'BaranainProcess.jpg', $ruta_destino.$nombre_imagen.'Baranain586x196.jpg',360);
-				unlink( $ruta_destino.'BaranainProcess.jpg' );
+				$image->save($ruta_destino.'BaranainProcess'.$tipoImagen);
+				$this->merge($ruta_destino.'base'.$tipoImagen, $ruta_destino.'BaranainProcess'.$tipoImagen, $ruta_destino.$nombre_imagen.'Baranain586x196'.$tipoImagen,360);
+				unlink( $ruta_destino.'BaranainProcess'.$tipoImagen );
 
 				// $image = new ImageResize($ruta_imagen);
 				// $image->resize(586, 196, $allow_enlarge = True);
 				// $image->resizeToHeight(196);
 				// $image->save($ruta_destino.'Baranain586x196.jpg');
 				$image->resize(80, 80, $allow_enlarge = True);
-				$image->save($ruta_destino.$evento_nombre.$this->generateRandomString.'Baranain80x80.jpg');
+				$image->save($ruta_destino.$nombre_imagen.'Baranain80x80'.$tipoImagen);
+				return $tipoImagen;
 
 			}
 
@@ -752,15 +822,15 @@
 
 			function connect_db(){
 
-				// $dbhost = "188.93.74.166";
-				// $dbname = "central_experiencias_final";
-				// $dbusername = "prueba";
-				// $dbpassword = "Navarra1221";
-
-				$dbhost = "localhost";
+				$dbhost = "188.93.73.11";
 				$dbname = "bd_espectaculos";
-				$dbusername = "root";
-				$dbpassword = "12345678";
+				$dbusername = "especta";
+				$dbpassword = "Yuwy19#8";
+
+				// $dbhost = "localhost";
+				// $dbname = "bd_espectaculos";
+				// $dbusername = "root";
+				// $dbpassword = "12345678";
 
 				return new PDO("mysql:host=$dbhost;dbname=$dbname",$dbusername,$dbpassword,array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES => false));
 			}
@@ -818,17 +888,19 @@
 			}
 
 			function subir_ftp($ruta_imagen,$img,$ruta_destino){
-				//exit;
 				$host = '188.93.73.11';
 				$usr = 'espectaculos';
 				$pwd = 'yg35$da/Btw29Je';
 
 				// file to move:
-				// $local_file = '/home/fermin/Escritorio/htdocs/crawlers/rioja/imagenes/'.$img;
-				// $ftp_path = '/httpdocs/nueva_central/images/contenidos/imagenes/'.$content_id.'/'.$img;
+				// $local_file = "/var/www/vhosts/espectaculospamplona.com/httpdocs/crawler/imagen_eventos_convertidas/QDNiBLJSUnoyeme-con-los-ojos-maria-pages-companiaMuseo586x196.jpg";
+				// $ftp_path = "/httpdocs/images/eventos/principal/QDNiBLJSUnoyeme-con-los-ojos-maria-pages-companiaMuseo586x196.jpg";
 
-				$local_file = $ruta_imagen . "/" . $img;
-				$ftp_path = $ruta_destino . "/" .$img;
+				$local_file = $ruta_imagen . $img;
+				$ftp_path = $ruta_destino . $img;
+
+				// echo $local_file."<br>";
+				// echo $ftp_path;exit;
 
 				// connect to FTP server (port 21)
 				$conn_id = ftp_connect($host, 21) or die ("Cannot connect to host");
@@ -852,7 +924,7 @@
 					// echo "subido";
 					unlink($local_file);
 				}else{
-					echo "No subido";
+					echo "No subido " . $img;
 				}
 				// check upload status:
 				// print (!$upload) ? 'Cannot upload' : 'Upload complete';
@@ -860,6 +932,7 @@
 			}
 
 			function merge($filename_x, $filename_y, $filename_result,$posicion) {
+
 				// Get dimensions for specified images
 				list($width_x, $height_x) = getimagesize($filename_x);
 				list($width_y, $height_y) = getimagesize($filename_y);
@@ -867,12 +940,26 @@
 				//$image = imagecreatetruecolor($width_x + $width_y, $height_x);
 				$image = imagecreatetruecolor($width_x, $height_x);
 				// Load images and then copy to destination image
-				$image_x = imagecreatefromjpeg($filename_x);
-				$image_y = imagecreatefromjpeg($filename_y);
+
+				if( strpos($filename_y, ".png") !== false){
+					$image_x = imagecreatefrompng($filename_x);
+					$image_y = imagecreatefrompng($filename_y);
+				}else{
+					$image_x = imagecreatefromjpeg($filename_x);
+					$image_y = imagecreatefromjpeg($filename_y);
+				}
+
 				imagecopy($image, $image_x, 0, 0, 0, 0, $width_x, $height_x);
 				imagecopy($image, $image_y, $width_x-$posicion, 0, 0, 0, $width_y, $height_y);
 				// Save the resulting image to disk (as JPEG)
-				imagejpeg($image, $filename_result);
+
+				if( strpos($filename_y, ".png") !== false){
+					imagepng($image, $filename_result);
+				}else{
+					imagejpeg($image, $filename_result);
+				}
+
+
 				// Clean up
 				imagedestroy($image);
 				imagedestroy($image_x);
