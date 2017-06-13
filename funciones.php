@@ -19,7 +19,7 @@
 					$urlsBaluarte = array();
 					$auxUrl = $this->urlBaluarte."?tipo=&fecha=".$mesActual;
 					$urlsBaluarte = $this->obtenerLinksBaluarte($this->traerHtml($auxUrl));
-					// $urlsBaluarte = array("http://baluarte.com/cas/espectaculos-y-conciertos/calendario-de-espectaculos/orquesta-sinfonica-de-navarra-259/fecha=2017-6");
+					// $urlsBaluarte = array("http://baluarte.com/cas/espectaculos-y-conciertos/calendario-de-espectaculos/orchestre-national-bordeaux-aquitaine/fecha=2017-6");
 					foreach ($urlsBaluarte as $key => $url) {
 						$eventosBaluarte[] = $this->parseHtmlBaluarte($url);
 					}
@@ -73,14 +73,19 @@
 				$auxHora1 = explode("·",$auxHora0[1]);
 				$hora = rtrim(trim($auxHora1[0]));
 
-				$cadena = str_replace('</div>', '', $auxHora1[1]);
-				$lugar = "Baluarte, ". trim(rtrim($cadena));
+				// $cadena = str_replace('</div>', '', $auxHora1[1]);
+				// $lugar = "Baluarte, ". trim(rtrim($cadena));
+
+				$lugar = "Baluarte";
 
 				$texto = "";
 				foreach(pq($divNoticia)->find('p') as $divContenido) {
 					$texto .= $divContenido->textContent."<br>";
 				}
 
+				foreach(pq($divNoticia)->find('div') as $divContenido) {
+					$texto .= $divContenido->textContent."<br>";
+				}
 
 				if( $texto == "" ){
 					//En algunos evento, en vez de meter en <p> la descripción lo dejan directamente en un div y ademas no tiene
@@ -90,17 +95,22 @@
 						$texto .= $divContenido->textContent."<br>";
 					}
 				}
+
 				$texto = utf8_decode($texto);
-				$precio = utf8_decode(rtrim(trim(strip_tags(pq($divEvento)->find('span.precios'))))) . " euros.";
-				$precio = str_replace('?', '', $precio);
+
+				if ( $precio != "" ){
+					$precio = utf8_decode(rtrim(trim(strip_tags(pq($divEvento)->find('span.precios'))))) . " euros.";
+					$precio = str_replace('?', '', $precio);
+					$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
+									<p><span style="font-family: Arial, sans-serif; font-size: 11px;">' . $precio . '</span></p>';
+				}
 
 				$urlCompraEntradas = $this->get_string_between(pq($divEvento)->find('div.compraentrada')->find('a')->attr('onclick'),"compraEntradas('","')");
-				$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
 
-				$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
-									<p><span style="font-family: Arial, sans-serif; font-size: 11px;">' . $precio . '</span></p>';
-				$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
-
+				if($urlCompraEntradas != ""){
+					$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
+					$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
+				}
 				// echo '<pre>';var_dump(array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen));echo '</pre>';exit;
 				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 				// return new Evento($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
@@ -157,7 +167,7 @@
 				$eventos = array();
 				$auxUrl = "http://www.auditoriobaranain.com/programacion/";
 				$urls = $this->obtenerLinksBaranain($this->traerHtml($auxUrl));
-
+				// $urls = array("http://www.auditoriobaranain.com/programacion/x-aniversario-escuela-de-danza-diana-casas/");
 				foreach ($urls as $key => $url) {
 					$eventos[] = $this->parseHtmlBaranain($url);
 				}
@@ -171,7 +181,7 @@
 				//Recorro ese div buscando la url detalle de cada evento
 				foreach( $divEventos->find('div.isotope-item') as $divEvento ) {
 					$urlEvento = pq($divEvento)->find('h4')->find('a')->attr('href');
-					$urls[] = $urlEvento;;
+					$urls[] = $urlEvento;
 				}
 				return $urls;
 			}
@@ -189,6 +199,8 @@
 
 				// echo $imagen;exit;
 				$titulo = utf8_decode(strip_tags(pq($divTitulo)->find('h1')));
+				$titulo = str_replace('?', '', $titulo);
+
 				$tipo = utf8_decode(strip_tags(pq($divTitulo)->find('h5')));
 
 				$aux =  pq($divEvento)->find('p:first');
@@ -215,26 +227,43 @@
 				$hora = rtrim(trim($auxFecha = $this->get_string_between($aux,'<br><span class="text-uppercase"><strong>Horario:</strong></span>','<br>')));
 				$lugar = utf8_decode("Auditorio Barañain," . rtrim(trim($this->get_string_between($aux,'<strong>Sala:</strong></span>','</p>'))));
 
-				$aux =  pq($divEvento)->find('ul.disc-list');
-				$precio = "";
-				foreach ($aux->find('li') as $key => $p) {
-					$precio .= utf8_decode($p->textContent)."<br>";
-				}
-
-				$urlCompraEntradas =  pq($divEvento)->find('div.vc_btn3-container')->find('a.vc_general')->attr('href');
-				$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
 
 				$texto = "";
 				foreach(pq($divEvento)->find('div.vc_tta-panel-body')->find('div.wpb_text_column')->find('div.wpb_wrapper')->find('p') as $contenido) {
-					$texto .= utf8_decode($contenido->textContent)."<br>";
+					$texto .= $contenido->textContent."<br>";
 				}
 
-				$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
+				$aux =  pq($divEvento)->find('ul.disc-list');
+				$precio = "";
+				foreach ($aux->find('li') as $key => $p) {
+					$aux_precio_b = str_replace('€', ' euros', $p->textContent);
+					$precio .= utf8_decode($aux_precio_b)."<br>";
+				}
+
+				if($precio != ""){
+					$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
 									<p><span style="font-family: Arial, sans-serif; font-size: 11px;">' . $precio . '</span></p>';
-				$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
+				}
+
+				$urlCompraEntradas =  pq($divEvento)->find('div.vc_btn3-container')->find('a.vc_general')->attr('href');
+
+				if($urlCompraEntradas != ""){
+					$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
+					$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
+				}
+
+				$texto = $this->encodeToIso($texto);
 
 				// echo '<pre>';var_dump(array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen));echo '</pre>';exit;
 				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
+			}
+
+			public function encodeToUtf8($string) {
+			     return mb_convert_encoding($string, "UTF-8", mb_detect_encoding($string, "UTF-8, ISO-8859-1, ISO-8859-15", true));
+			}
+
+			public function encodeToIso($string) {
+			     return mb_convert_encoding($string, "ISO-8859-1", mb_detect_encoding($string, "UTF-8, ISO-8859-1, ISO-8859-15", true));
 			}
 
 			function obtenerUnixTimeBaranain($fechaTexto){
@@ -296,6 +325,7 @@
 					$urlsGayarre = array();
 					$auxUrl = $this->urlGayarre."?mesAgenda=".$mesActual."&annoAgenda=".$anoActual;
 					$urlsGayarre = $this->obtenerLinksGayarre($this->traerHtml($auxUrl));
+					// $urlsGayarre = array("http://teatrogayarre.com/portal/aE.aspx?id=1277");
 					foreach ($urlsGayarre as $key => $url) {
 						$eventosGayarre[] = $this->parseHtmlGayarre($url);
 					}
@@ -339,15 +369,24 @@
 				$aux = pq($divInfoEvento)->find('div.fechas')->find('div.fecha');
 				$aux = explode("-", $aux);
 				$fechaTexto = rtrim(trim(strtolower(str_replace('de', '', $aux[1]))));
+
+				if(strpos($fechaTexto, '<div class="fecha">') !== false){
+					$pos = strpos($fechaTexto,'<div class="fecha">');
+					$fechaTexto = substr($fechaTexto,0,$pos);
+				}
+
 				$fechaTexto = str_replace('  ', ' ', $fechaTexto);
 				$fechaTexto = utf8_decode(strip_tags($fechaTexto));
+
 				$fechaUnix = $this->obtenerUnixTimeGayarre($fechaTexto);
 				$hora = utf8_decode(rtrim(trim(strip_tags(pq($divInfoEvento)->find('div.fechas')->find('div.hora')))));
 				$lugar = utf8_decode("Teatro Gayarre, Sala Principal");
 				$tablaPrecios = pq($divInfoEvento)->find('table.precio');
 				$precio = "";
 				foreach ($tablaPrecios->find('tr') as $key => $p) {
-					$aux_precio = str_replace('Sala', 'Sala ', $p->textContent);
+
+					$aux_precio_c = str_replace('€', ' euros', $p->textContent);
+					$aux_precio = str_replace('Sala', 'Sala ', $aux_precio_c);
 					$aux_precio = str_replace('Palco', 'Palco ', $aux_precio);
 					$aux_precio = str_replace('Anfiteatro', 'Anfiteatro ', $aux_precio);
 					$precio .= utf8_decode($aux_precio) . "<br>";
@@ -359,6 +398,10 @@
 				foreach ($divEvento->find('div:first')->find('p') as $key => $p) {
 				 	$texto .= utf8_decode($p->textContent)."<br>";
 				}
+
+				$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
+									<p><span style="font-family: Arial, sans-serif; font-size: 11px;">' . $precio . '</span></p>';
+				$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
 
 				//echo '<pre>';var_dump(array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen));echo '</pre>';
 				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
@@ -476,7 +519,8 @@
 				$precio = "";
 				foreach (pq($divEvento)->find('p') as $key => $item) {
 					if( strpos($item->textContent, 'Entrada general') !== false ){
-						$precio = utf8_decode(rtrim(trim($this->get_string_between($item->textContent, 'Entrada general: ', 'A los precios de'))));
+						$precio = str_replace('€', ' euros', $item->textContent);
+						$precio = utf8_decode(rtrim(trim($this->get_string_between($precio, 'Entrada general: ', 'A los precios de'))));
 					}
 				}
 
@@ -487,6 +531,10 @@
 				foreach ($divEvento->find('p') as $key => $p) {
 				 	$texto .= utf8_decode($p->textContent)."<br>";
 				}
+
+				$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
+									<p><span style="font-family: Arial, sans-serif; font-size: 11px;">' . $precio . '</span></p>';
+				$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
 				//echo '<pre>';var_dump(array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen));echo '</pre>';exit;
 				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 			}
@@ -554,6 +602,7 @@
 				$urlsZentral = array();
 				$auxUrl = $this->urlZentral;
 				$urlsZentral = $this->obtenerLinksZentral($this->traerHtml($auxUrl));
+				// $urlsZentral = array("http://www.espectaculospamplona.com/eventos/espectaculos-pamplona/la-historia-de-los-juguetes-toy-s-story");
 				foreach ($urlsZentral as $key => $url) {
 					$eventosZentral[] = $this->parseHtmlZentral($url);
 				}
@@ -590,6 +639,7 @@
 				foreach (pq($divEvento)->find('div.texto_evento_descripcion')->find('p') as $key => $item) {
 					$texto .= utf8_decode($item->textContent);
 				}
+
 				$lugar = utf8_decode("Zentral, " . trim(rtrim(strip_tags(pq($divEvento)->find('div.ubicacion')))));
 				$urlCompraEntradas = pq($divEvento)->find('div.event-tickets')->find('a')->attr('href');
 				$urlCompraEntradas = bitly::acortarUrl($urlCompraEntradas);
@@ -599,10 +649,14 @@
 				$precio = "";
 				foreach (pq($divInfoPrecioEvento)->find('h5') as $key => $item) {
 					if($key == 1){
-						$precio = utf8_decode($item->textContent);
+						$precio = str_replace('€', ' euros', $item->textContent);
+						$precio = utf8_decode($precio);
 					}
-
 				}
+
+				$texto .='<p><span style="font-family: Arial, sans-serif; font-size: 11px;">Precios:</span></p>
+									<p><span style="font-family: Arial, sans-serif; font-size: 11px;">' . $precio . '</span></p>';
+				$texto .='<p><a title="Entradas Requiem Verdi" href="' . $urlCompraEntradas . '" target="_blank"><span style="font-family: Arial, sans-serif; font-size: 11px;">Compra de entradas</span></a></p';
 				// echo '<pre>';var_dump(array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen));echo '</pre>';exit;
 				return array($titulo,$tipo,$fechaUnix,$fechaTexto,$hora,$lugar,$urlWeb,$texto,$precio,$urlCompraEntradas,$imagen);
 			}
